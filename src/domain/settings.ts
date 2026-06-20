@@ -19,7 +19,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideReaction: false,
   hideReactionIcon: false,
   selfNotification: false,
-  userName: "AnonymousUser",
+  userName: "ユーザー",
 };
 
 /** Mapping between domain fields and `chrome.storage` keys. */
