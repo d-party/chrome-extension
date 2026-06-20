@@ -89,7 +89,7 @@ export function PopupApp(): React.JSX.Element {
   return (
     <div className="bg-background text-foreground">
       {/* Header */}
-      <header className="bg-gradient-to-br from-violet-600 to-indigo-600 px-5 py-4 text-white">
+      <header className="bg-gradient-to-br from-red-600 to-rose-700 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
             <Users className="size-5" aria-hidden />
@@ -105,7 +105,7 @@ export function PopupApp(): React.JSX.Element {
         {/* User settings */}
         <section className="rounded-xl border bg-card p-4 shadow-sm">
           <div className="mb-3 flex items-center gap-2">
-            <User className="size-4 text-violet-600" aria-hidden />
+            <User className="size-4 text-red-600" aria-hidden />
             <h2 className="text-sm font-semibold">ユーザー設定</h2>
           </div>
           <form className="flex items-end gap-2" onSubmit={submitName}>
@@ -121,11 +121,7 @@ export function PopupApp(): React.JSX.Element {
                 onChange={(e) => setUserName(e.target.value)}
               />
             </div>
-            <Button
-              type="submit"
-              size="sm"
-              className="gap-1 bg-violet-600 hover:bg-violet-700"
-            >
+            <Button type="submit" size="sm" className="gap-1">
               {saved ? (
                 <>
                   <Check className="size-4" aria-hidden /> 保存済
@@ -140,7 +136,7 @@ export function PopupApp(): React.JSX.Element {
         {/* Player settings */}
         <section className="rounded-xl border bg-card p-2 shadow-sm">
           <div className="flex items-center gap-2 px-2 py-1.5">
-            <SlidersHorizontal className="size-4 text-violet-600" aria-hidden />
+            <SlidersHorizontal className="size-4 text-red-600" aria-hidden />
             <h2 className="text-sm font-semibold">プレイヤー設定</h2>
           </div>
           <div className="mt-1 space-y-0.5">
