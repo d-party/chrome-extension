@@ -1,13 +1,18 @@
 /**
  * Backend connection configuration.
  *
- * Port of the old `js/common/settings.js` constants. To target a local backend
- * for development, change these to e.g. `localhost/`, `http://`, `ws://`.
+ * Port of the old `js/common/settings.js` constants.
+ *
+ * Currently set to the **local development** backend (the docker-compose stack
+ * served via nginx on localhost). For production, switch back to:
+ *   BACKEND_HOST = "d-party.net/";
+ *   BACKEND_PROTOCOL = "https://";
+ *   WEBSOCKET_PROTOCOL = "wss://";
  */
 
-export const BACKEND_HOST = "d-party.net/";
-export const BACKEND_PROTOCOL = "https://";
-export const WEBSOCKET_PROTOCOL = "wss://";
+export const BACKEND_HOST = "localhost/";
+export const BACKEND_PROTOCOL = "http://";
+export const WEBSOCKET_PROTOCOL = "ws://";
 
 export const API_ENDPOINT = `${BACKEND_PROTOCOL}${BACKEND_HOST}api/v1/`;
 export const VERSION_CHECK_ENDPOINT = `${API_ENDPOINT}chrome-extension/version-check`;
