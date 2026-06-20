@@ -7,7 +7,14 @@
 
 @custom-variant dark (&:is(.dark *));
 
-:root {
+/*
+ * Variables target `:host` (not `:root`) because this stylesheet is injected
+ * into a Shadow DOM (see mountSidebar.tsx). Inside a shadow tree `:root`
+ * matches the outer document's <html>, so custom properties defined there
+ * never reach the sidebar elements and utilities like `bg-card` resolve to
+ * an empty value — making the panel look transparent on the player page.
+ */
+:host {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
@@ -31,7 +38,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :host {
     --background: oklch(0.165 0.01 270);
     --foreground: oklch(0.985 0 0);
     --card: oklch(0.215 0.01 270);

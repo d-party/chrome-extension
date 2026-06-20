@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { FaEnvelope, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { SiLine } from "react-icons/si";
 
+import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -30,6 +31,46 @@ import {
   type SidebarStore,
   type SidebarTab,
 } from "./sidebarStore";
+import type { ConnectionStatus } from "@/domain/connectionStatus";
+
+const CONNECTION_STATUS_META: Record<
+  ConnectionStatus,
+  { label: string; dotClass: string }
+> = {
+  idle: { label: "接続前", dotClass: "bg-neutral-400" },
+  connected: { label: "接続済み", dotClass: "bg-emerald-500" },
+  failed: { label: "接続失敗", dotClass: "bg-red-500" },
+};
+
+function ConnectionBadge({ status }: { status: ConnectionStatus }): React.JSX.Element {
+  const { label, dotClass } = CONNECTION_STATUS_META[status];
+  return (
+    <div
+      role="status"
+      aria-label={`サーバー接続状態: ${label}`}
+      className="group flex cursor-default items-center rounded-full bg-white/10 px-2 py-1 text-xs text-white/90 transition-colors hover:bg-white/15"
+    >
+      <span className={`size-2.5 shrink-0 rounded-full ${dotClass}`} aria-hidden />
+      <span className="ml-0 max-w-0 overflow-hidden whitespace-nowrap opacity-0 transition-[max-width,margin-left,opacity] duration-200 ease-out group-hover:ml-1.5 group-hover:max-w-[8rem] group-hover:opacity-100">
+        {label}
+      </span>
+    </div>
+  );
+}
+
+function UserCountBadge({ count }: { count: number }): React.JSX.Element {
+  const label = `参加者 ${count} 人`;
+  return (
+    <div
+      role="status"
+      aria-label={label}
+      className="flex cursor-default items-center rounded-full bg-white/10 px-2 py-1 text-xs text-white/90"
+    >
+      <UserRound className="size-3 shrink-0" aria-hidden />
+      <span className="ml-0.5 shrink-0 tabular-nums">{count}</span>
+    </div>
+  );
+}
 
 export interface SidebarProps {
   store: SidebarStore;
@@ -109,19 +150,23 @@ function Panel({
 }: SidebarProps & { state: SidebarState }): React.JSX.Element {
   return (
     <div className="flex h-full w-80 flex-col bg-card text-card-foreground shadow-2xl ring-1 ring-border">
-      <header className="flex items-center justify-between bg-gradient-to-br from-red-800 to-red-900 px-3 py-2.5 text-white">
+      <header className="flex items-center justify-between bg-neutral-950 px-3 py-2.5 text-white">
         <div className="flex items-center gap-2">
-          <PartyPopper className="size-4" aria-hidden />
-          <span className="text-sm font-bold tracking-tight">d-party</span>
+          <Logo className="size-5" aria-hidden />
+          <span className="text-sm font-bold tracking-tight text-[#cc0033]">d-party</span>
         </div>
-        <button
-          type="button"
-          onClick={() => store.setCollapsed(true)}
-          aria-label="サイドバーを縮小"
-          className="rounded p-1 text-white/90 hover:bg-white/15"
-        >
-          <PanelRightClose className="size-4" aria-hidden />
-        </button>
+        <div className="flex items-center gap-2">
+          <ConnectionBadge status={state.connectionStatus} />
+          <UserCountBadge count={state.users.length} />
+          <button
+            type="button"
+            onClick={() => store.setCollapsed(true)}
+            aria-label="サイドバーを縮小"
+            className="rounded p-1 text-white/80 hover:bg-white/10 hover:text-white"
+          >
+            <PanelRightClose className="size-4" aria-hidden />
+          </button>
+        </div>
       </header>
 
       {state.mode === "create" && !state.joined ? (
@@ -152,7 +197,7 @@ function Panel({
           </TabsList>
 
           <div className="min-h-0 flex-1 overflow-y-auto pt-3">
-            <TabsContent value="share">
+            <TabsContent value="share" className="h-full">
               <SharePanel state={state} />
             </TabsContent>
             <TabsContent value="history">
@@ -167,6 +212,9 @@ function Panel({
           </div>
         </Tabs>
       )}
+      <footer className="shrink-0 border-t border-border px-3 py-1.5 text-center text-[10px] text-muted-foreground">
+        powered by <span className="font-semibold">U-Not</span>
+      </footer>
     </div>
   );
 }
@@ -202,30 +250,34 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
   const open = (shareUrl: string) => window.open(shareUrl, "", "width=700,height=400");
 
   return (
-    <div className="flex flex-col gap-3 px-1">
+    <div className="flex h-full flex-col justify-center gap-5 px-1">
       <p className="text-xs text-muted-foreground">
-        パーティーリンクを共有して友達を招待しよう
+        パーティーリンクを共有して友達をルームに招待
       </p>
-      <div className="flex items-center gap-1.5 rounded-lg border bg-muted/40 p-1.5">
-        <span className="flex-1 truncate px-1 text-xs" title={url}>
-          {url || "ルーム作成後にリンクが表示されます"}
-        </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size="icon"
-              variant="secondary"
-              className="size-7"
-              disabled={!url}
-              onClick={copy}
-              aria-label="リンクをコピー"
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={copy}
+            disabled={!url}
+            aria-label="リンクをコピー"
+            className="flex w-full items-center gap-1.5 rounded-lg border bg-muted/40 p-1.5 text-left transition-colors hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="flex-1 truncate px-1 text-xs" title={url}>
+              {url || "ルーム作成後にリンクが表示されます"}
+            </span>
+            <span
+              aria-hidden
+              className="flex size-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground"
             >
-              {copied ? <Check /> : <Copy />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{copied ? "コピーしました" : "リンクをコピー"}</TooltipContent>
-        </Tooltip>
-      </div>
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="top">
+          {copied ? "コピーしました" : "リンクをコピー"}
+        </TooltipContent>
+      </Tooltip>
       <div className="flex items-center justify-center gap-3">
         <ShareIcon
           label="Xでシェア"
@@ -306,7 +358,7 @@ function ShareIcon({
         <Button
           size="icon"
           variant="outline"
-          className="size-10 rounded-full"
+          className="size-12 rounded-full [&_svg]:size-5"
           disabled={disabled}
           onClick={onClick}
           aria-label={label}

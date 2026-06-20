@@ -1,4 +1,5 @@
 import type { SidebarView } from "@/application/ports";
+import type { ConnectionStatus } from "@/domain/connectionStatus";
 import type { User } from "@/domain/protocol";
 
 export type SidebarTab = "share" | "history" | "users" | "control";
@@ -17,6 +18,8 @@ export interface SidebarState {
   mode: "create" | "join" | "normal";
   /** True once a room has been created/joined (switches the create CTA to tabs). */
   joined: boolean;
+  /** WebSocket connection status (drives the header badge). */
+  connectionStatus: ConnectionStatus;
   activeTab: SidebarTab;
   shareUrl: string;
   shareTitle: string;
@@ -29,6 +32,7 @@ const INITIAL_STATE: SidebarState = {
   collapsed: false,
   mode: "normal",
   joined: false,
+  connectionStatus: "idle",
   activeTab: "share",
   shareUrl: "",
   shareTitle: "",
@@ -66,6 +70,9 @@ export class SidebarStore {
   }
   setJoined(joined: boolean): void {
     this.patch({ joined });
+  }
+  setConnectionStatus(status: ConnectionStatus): void {
+    this.patch({ connectionStatus: status });
   }
   setActiveTab(activeTab: SidebarTab): void {
     this.patch({ activeTab });
@@ -111,6 +118,15 @@ export class SidebarController implements SidebarView {
 
   setShareLink(roomUrl: string): void {
     this.store.setShareLink(roomUrl);
+  }
+  setJoined(joined: boolean): void {
+    this.store.setJoined(joined);
+  }
+  setConnectionStatus(status: ConnectionStatus): void {
+    this.store.setConnectionStatus(status);
+  }
+  showSharePanel(): void {
+    this.store.setActiveTab("share");
   }
   addHistory(text: string): void {
     this.store.addHistory(text);

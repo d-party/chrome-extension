@@ -4,7 +4,7 @@ import { ActionGuard } from "@/application/ActionGuard";
 import type { SettingsProvider } from "@/application/ports";
 import { RoomSession } from "@/application/RoomSession";
 import { DEFAULT_SETTINGS, type Settings } from "@/domain/settings";
-import { AwnNotifier } from "@/infrastructure/notifier/AwnNotifier";
+import { ReactNotifier } from "@/infrastructure/notifier/ReactNotifier";
 import { ChromeStorageSettingsRepository } from "@/infrastructure/storage/ChromeStorageSettingsRepository";
 import { WEBSOCKET_ENDPOINT } from "@/infrastructure/env";
 import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
@@ -34,7 +34,6 @@ settingsRepo.onChange((s) => (currentSettings = s));
 
 // --- composition root -------------------------------------------------------
 const guard = new ActionGuard();
-const notifier = new AwnNotifier();
 const reactions = new ReactionViewDom();
 const player = new PlayerControllerDom(guard);
 const client = new PartyWebSocketClient(WEBSOCKET_ENDPOINT);
@@ -50,20 +49,20 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
     addControlButtons();
     bindPlayerEvents();
     session.createRoom(getParam("partId") ?? "");
-    sidebarStore.setJoined(true);
-    sidebarStore.setActiveTab("share");
-    session.successHistory("ルームの作成に成功しました");
   },
   onLeave: () => {
     if (!session.inRoom) return;
     session.leave();
     sidebarStore.hide();
-    byClass("awn-toast-container")?.setAttribute("style", "right:24px;");
   },
   onTabChange: (tab: SidebarTab) => {
     if (tab === "users") session.requestUserList();
   },
 });
+
+// Toast viewport offsets itself against the sidebar so notifications land on
+// the player area to the left of the sidebar (not on top of it).
+const notifier = new ReactNotifier(sidebarStore);
 
 const session = new RoomSession({
   client,
@@ -86,15 +85,13 @@ window.addEventListener("load", () => {
   nextPageAnotherTab();
 });
 
-// Hide the sidebar in fullscreen and reposition the AWN toast container.
+// Hide the sidebar in fullscreen. The React toast viewport mounts to its own
+// Shadow DOM host and doesn't need repositioning.
 document.addEventListener("fullscreenchange", () => {
-  const toast = byClass("awn-toast-container");
   if (document.fullscreenElement) {
     sidebarStore.hide();
-    toast?.setAttribute("style", "right:24px;");
   } else {
     if (mode !== "normal") sidebarStore.show();
-    toast?.setAttribute("style", "");
   }
 });
 

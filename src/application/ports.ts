@@ -5,6 +5,7 @@
  */
 
 import type { PlayerOption, SyncOption, User } from "@/domain/protocol";
+import type { ConnectionStatus } from "@/domain/connectionStatus";
 import type { ReactionType } from "@/domain/reactions";
 import type { Settings } from "@/domain/settings";
 
@@ -27,6 +28,9 @@ export interface PlayerController {
 /** Renders the sidebar (share/history/users/control panels). */
 export interface SidebarView {
   setShareLink(roomUrl: string): void;
+  setJoined(joined: boolean): void;
+  showSharePanel(): void;
+  setConnectionStatus(status: ConnectionStatus): void;
   addHistory(text: string): void;
   addHistoryUser(userName: string): void;
   leaveHistoryUser(userName: string): void;

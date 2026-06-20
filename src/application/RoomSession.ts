@@ -27,6 +27,7 @@ export interface RoomSessionDeps {
 }
 
 const SERVER_DISCONNECTED = "サーバーとの通信が終了";
+const CONNECT_FAILED = "サーバーへの接続に失敗しました";
 
 /**
  * Orchestrates a watch-together session over the party WebSocket.
@@ -40,6 +41,7 @@ export class RoomSession {
   private readonly deps: RoomSessionDeps;
 
   private _inRoom = false;
+  private joined = false;
   private resetDelayMs = 100;
 
   userId = "";
@@ -58,7 +60,9 @@ export class RoomSession {
   /** Host a new room for the given part. */
   createRoom(partId: string): void {
     this._inRoom = true;
+    this.joined = false;
     this.resetDelayMs = 100;
+    this.deps.sidebar.setConnectionStatus("idle");
     this.openSocket();
     window.setTimeout(() => {
       this.send({
@@ -73,8 +77,10 @@ export class RoomSession {
   /** Join an existing room and immediately request a sync to the host. */
   joinRoom(roomId: string): void {
     this._inRoom = true;
+    this.joined = false;
     this.resetDelayMs = 200;
     this.roomId = roomId;
+    this.deps.sidebar.setConnectionStatus("idle");
     this.openSocket();
     window.setTimeout(() => {
       this.send({
@@ -92,8 +98,16 @@ export class RoomSession {
     this.deps.client.connect({
       onMessage: (message) => this.handleMessage(message),
       onClose: () => {
-        this.deps.notifier.alert(SERVER_DISCONNECTED);
+        if (this.joined) {
+          this.deps.notifier.alert(SERVER_DISCONNECTED);
+        } else if (this._inRoom) {
+          this.deps.notifier.alert(CONNECT_FAILED);
+          this.deps.sidebar.addHistory(CONNECT_FAILED);
+        }
         this._inRoom = false;
+        this.joined = false;
+        this.deps.sidebar.setJoined(false);
+        this.deps.sidebar.setConnectionStatus("failed");
       },
     });
   }
@@ -178,12 +192,20 @@ export class RoomSession {
       case "create":
         this.userId = message.user.user_id;
         this.roomId = message.room_id;
+        this.joined = true;
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
+        sidebar.setJoined(true);
+        sidebar.setConnectionStatus("connected");
+        sidebar.showSharePanel();
+        this.successHistory("ルームの作成に成功しました");
         break;
       case "join":
         this.userId = message.user.user_id;
         this.roomId = message.room_id;
+        this.joined = true;
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
+        sidebar.setJoined(true);
+        sidebar.setConnectionStatus("connected");
         notifier.success("ルームに参加");
         break;
       case "server_message":

@@ -17,9 +17,8 @@
     "verbatimModuleSyntax": false,
     "noEmit": true,
     "types": ["chrome", "react", "react-dom"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src", "rspack.config.ts", "orval.config.ts", ".storybook"],
