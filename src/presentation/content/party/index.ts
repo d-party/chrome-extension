@@ -299,9 +299,9 @@ function nextPageAnotherTab(): void {
     subtree: true,
   };
   const callback = () => {
-    $("body").append(
-      "<script type='text/javascript' class=recommend_remover>$('.recommend').off('click');</script>",
-    );
+    // (The original also injected an inline <script> here to strip the page's
+    // own .recommend click handlers; that is blocked by the page CSP and has
+    // been removed. We rebind onclick directly on the page elements instead.)
     document.querySelectorAll<HTMLElement>(".recommend").forEach((item) => {
       item.onclick = () => {
         const next = item.querySelector("input")?.getAttribute("value");
