@@ -59,14 +59,16 @@ function decorateEpisodes(): void {
     }
 
     const playIcon = document.createElement("a");
-    playIcon.textContent = "play_arrow";
+    playIcon.textContent = "play_circle_filled";
     playIcon.setAttribute("class", "material-icons play-btn");
     playIcon.setAttribute("target", "_blank");
+    playIcon.setAttribute("title", "別タブで再生");
     playIcon.setAttribute("href", "sc_d_pc?partId=" + partId);
     item.parentElement?.appendChild(playIcon);
 
     const popperIcon = document.createElement("a");
-    popperIcon.textContent = "celebration";
+    popperIcon.textContent = "groups";
+    popperIcon.setAttribute("title", "パーティールームを作成");
     popperIcon.setAttribute("class", "material-icons popper-btn");
     popperIcon.setAttribute("target", "_blank");
     popperIcon.setAttribute("href", "sc_d_pc?partId=" + partId + "&party=create");
