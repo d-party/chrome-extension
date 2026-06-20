@@ -16,10 +16,17 @@
     "default_popup": "popup.html"
   },
   "permissions": ["storage"],
-  "host_permissions": ["https://anime.dmkt-sp.jp/*", "https://d-party.net/*"],
+  "host_permissions": [
+    "https://animestore.docomo.ne.jp/*",
+    "https://anime.dmkt-sp.jp/*",
+    "https://d-party.net/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"],
+      "matches": [
+        "https://animestore.docomo.ne.jp/animestore/sc_d_pc?*",
+        "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
+      ],
       "js": ["js/content-party.js"],
       "css": [
         "css/library/awesome-notification.css",
@@ -31,6 +38,8 @@
     },
     {
       "matches": [
+        "https://animestore.docomo.ne.jp/animestore/ci_pc?*",
+        "https://animestore.docomo.ne.jp/animestore/tp_pc*",
         "https://anime.dmkt-sp.jp/animestore/ci_pc?*",
         "https://anime.dmkt-sp.jp/animestore/tp_pc*"
       ],
@@ -46,7 +55,10 @@
   "web_accessible_resources": [
     {
       "resources": ["assets/*"],
-      "matches": ["https://anime.dmkt-sp.jp/*"]
+      "matches": [
+        "https://animestore.docomo.ne.jp/*",
+        "https://anime.dmkt-sp.jp/*"
+      ]
     }
   ]
 }
