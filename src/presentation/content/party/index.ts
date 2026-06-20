@@ -11,8 +11,9 @@ import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 
 import { getParam } from "../dom/utils";
 import { PlayerControllerDom } from "./PlayerControllerDom";
+import { mountSidebar } from "./react/mountSidebar";
+import type { SidebarTab } from "./react/sidebarStore";
 import { ReactionViewDom } from "./ReactionViewDom";
-import { SidebarViewDom } from "./SidebarViewDom";
 
 /**
  * Content script for the dアニメストア player page (sc_d_pc). Wires the
@@ -36,56 +37,79 @@ const guard = new ActionGuard();
 const notifier = new AwnNotifier();
 const reactions = new ReactionViewDom();
 const player = new PlayerControllerDom(guard);
-const sidebar = new SidebarViewDom(notifier);
-
-// Build the sidebar synchronously (content scripts run at document_idle).
-sidebar.build();
-
 const client = new PartyWebSocketClient(WEBSOCKET_ENDPOINT);
+
+// Mode comes from the URL (?party=create|join).
+const partyParam = getParam("party");
+const mode: "create" | "join" | "normal" =
+  partyParam === "create" ? "create" : partyParam === "join" ? "join" : "normal";
+
+// Mount the React sidebar (Shadow DOM) and bridge it to RoomSession.
+const { store: sidebarStore, controller: sidebarController } = mountSidebar({
+  onCreateRoom: () => {
+    addControlButtons();
+    bindPlayerEvents();
+    session.createRoom(getParam("partId") ?? "");
+    sidebarStore.setJoined(true);
+    sidebarStore.setActiveTab("share");
+    session.successHistory("ルームの作成に成功しました");
+  },
+  onLeave: () => {
+    if (!session.inRoom) return;
+    session.leave();
+    sidebarStore.hide();
+    byClass("awn-toast-container")?.setAttribute("style", "right:24px;");
+  },
+  onTabChange: (tab: SidebarTab) => {
+    if (tab === "users") session.requestUserList();
+  },
+});
+
 const session = new RoomSession({
   client,
   player,
-  sidebar,
+  sidebar: sidebarController,
   reactions,
   notifier,
   settings,
   guard,
 });
 
+sidebarStore.setMode(mode);
+if (mode === "join") sidebarStore.setJoined(true);
+
 let playerEventsBound = false;
 
 // --- page lifecycle ---------------------------------------------------------
 window.addEventListener("load", () => {
-  if (sidebar.mode === "join" || sidebar.mode === "create") {
-    video().removeAttribute("autoplay");
-  }
-  sidebar.bindShareControls();
-  sidebar.registerFullscreenListener();
+  if (mode !== "normal") video().removeAttribute("autoplay");
   nextPageAnotherTab();
 });
 
-// Update the page title once the video has loaded.
+// Hide the sidebar in fullscreen and reposition the AWN toast container.
+document.addEventListener("fullscreenchange", () => {
+  const toast = byClass("awn-toast-container");
+  if (document.fullscreenElement) {
+    sidebarStore.hide();
+    toast?.setAttribute("style", "right:24px;");
+  } else {
+    if (mode !== "normal") sidebarStore.show();
+    toast?.setAttribute("style", "");
+  }
+});
+
+// Update the page title and share title once the video has loaded.
 video().addEventListener("loadeddata", () => {
   const title = document.querySelector("title");
   if (title) title.textContent = player.getTitle();
+  sidebarStore.setShareTitle(shareTitle());
 });
-
-// --- create flow ------------------------------------------------------------
-const createButton = byClass("sidebar_create");
-if (createButton) {
-  createButton.onclick = () => {
-    sidebar.changeCreate(() => session.successHistory("ルームの作成に成功しました"));
-    addControlButtons();
-    bindPlayerEvents();
-    session.createRoom(getParam("partId") ?? "");
-  };
-}
 
 // --- join flow --------------------------------------------------------------
 video().addEventListener(
   "loadeddata",
   () => {
-    if (sidebar.mode !== "join") return;
+    if (mode !== "join") return;
     if (getParam("party") === "true") {
       const title = document.querySelector("title");
       if (title) title.textContent += " 🎉";
@@ -96,6 +120,12 @@ video().addEventListener(
   },
   { once: true },
 );
+
+function shareTitle(): string {
+  const text = (cls: string) =>
+    document.getElementsByClassName(cls)[0]?.textContent ?? "";
+  return `${text("backInfoTxt1")} - ${text("backInfoTxt2")} - ${text("backInfoTxt3")}`;
+}
 
 // --- general player event wiring (port of general_websocket) ----------------
 function bindPlayerEvents(): void {
@@ -157,13 +187,6 @@ function bindPlayerEvents(): void {
   bindClass("sync_button", () => {
     if (active()) session.requestSync();
   });
-  bindClick("sidebar_leave_button", () => {
-    if (active()) {
-      session.leave();
-      sidebar.hideSidebar();
-      byClass("awn-toast-container")?.setAttribute("style", "right:24px;");
-    }
-  });
 
   bindClass("backArea", () => {
     if (session.inRoom && guard.available) {
@@ -208,15 +231,6 @@ function bindPlayerEvents(): void {
   bindReaction("thumbs_button", "thumbs_up");
   bindReaction("smile_button", "smile");
   bindReaction("cry_button", "cry");
-
-  const carouselButtons = document.getElementsByClassName("flickity-button");
-  for (const button of Array.from(carouselButtons) as HTMLElement[]) {
-    button.onclick = () => {
-      if (session.inRoom) {
-        sidebar.changeSidebarContent(() => session.requestUserList());
-      }
-    };
-  }
 
   window.addEventListener("keydown", (event) => {
     const playKeys = ["Space", "Enter", "NumpadEnter", "KeyK"];

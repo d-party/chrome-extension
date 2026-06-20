@@ -19,6 +19,9 @@ const config: Configuration = {
     "content-version": src("presentation/content/version/index.ts"),
     // Popup (React + shadcn/ui).
     popup: src("presentation/popup/index.tsx"),
+    // Sidebar styles, emitted as a standalone CSS file and injected into the
+    // sidebar's Shadow DOM at runtime (content-party).
+    "sidebar-style": src("styles/sidebar.css"),
   },
   output: {
     path: path.resolve(__dirname, "dist"),
@@ -51,6 +54,8 @@ const config: Configuration = {
     ],
   },
   experiments: { css: true },
+  // Content scripts legitimately bundle React; the asset-size hint is noise here.
+  performance: { hints: false },
   optimization: {
     // Content scripts and the service worker must each be a single, self-contained
     // file — disable code splitting and a shared runtime chunk.

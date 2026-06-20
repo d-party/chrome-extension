@@ -31,7 +31,6 @@
       "css": [
         "css/library/awesome-notification.css",
         "css/library/knopf.min.css",
-        "css/library/flickity.css",
         "css/player.css",
         "css/style.css"
       ]
@@ -54,7 +53,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*"],
+      "resources": ["assets/*", "js/sidebar-style.css"],
       "matches": [
         "https://animestore.docomo.ne.jp/*",
         "https://anime.dmkt-sp.jp/*"
