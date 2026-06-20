@@ -6,6 +6,10 @@
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.97 0 0);
@@ -21,12 +25,39 @@
   --ring: oklch(0.708 0 0);
 }
 
+/* Automatic dark mode following the OS preference. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: oklch(0.165 0.01 270);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.215 0.01 270);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.215 0.01 270);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.27 0.01 270);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.27 0.01 270);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.27 0.01 270);
+    --accent-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.556 0 0);
+  }
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -58,5 +89,5 @@ body {
 }
 
 #root {
-  width: 320px;
+  width: 340px;
 }
