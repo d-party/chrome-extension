@@ -9,16 +9,15 @@ import {
   User,
   Users,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { DEFAULT_SETTINGS, type Settings } from "@/domain/settings";
-import { ChromeStorageSettingsRepository } from "@/infrastructure/storage/ChromeStorageSettingsRepository";
+import { type Settings } from "@/domain/settings";
 
-const repo = new ChromeStorageSettingsRepository();
+import { useSettings } from "./useSettings";
 
 type ToggleKey = Exclude<keyof Settings, "userName">;
 
@@ -63,25 +62,22 @@ function appVersion(): string {
 }
 
 export function PopupApp(): React.JSX.Element {
-  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
-  const [userName, setUserName] = useState<string>(DEFAULT_SETTINGS.userName);
+  const { settings, loaded, update } = useSettings();
+  const [draftName, setDraftName] = useState("");
   const [saved, setSaved] = useState(false);
+  const seeded = useRef(false);
 
+  // Seed the editable name field once settings have loaded.
   useEffect(() => {
-    void repo.getAll().then((s) => {
-      setSettings(s);
-      setUserName(s.userName);
-    });
-  }, []);
-
-  const toggle = (key: ToggleKey) => async (checked: boolean) => {
-    setSettings((prev) => ({ ...prev, [key]: checked }));
-    await repo.set(key, checked);
-  };
+    if (loaded && !seeded.current) {
+      seeded.current = true;
+      setDraftName(settings.userName);
+    }
+  }, [loaded, settings.userName]);
 
   const submitName = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
-    await repo.set("userName", userName);
+    await update("userName", draftName);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
   };
@@ -117,8 +113,8 @@ export function PopupApp(): React.JSX.Element {
                 id="user-name"
                 maxLength={15}
                 placeholder="あなたの名前"
-                value={userName}
-                onChange={(e) => setUserName(e.target.value)}
+                value={draftName}
+                onChange={(e) => setDraftName(e.target.value)}
               />
             </div>
             <Button type="submit" size="sm" className="gap-1">
@@ -156,7 +152,7 @@ export function PopupApp(): React.JSX.Element {
                 <Switch
                   id={key}
                   checked={settings[key]}
-                  onCheckedChange={toggle(key)}
+                  onCheckedChange={(checked) => void update(key, checked)}
                 />
               </label>
             ))}
