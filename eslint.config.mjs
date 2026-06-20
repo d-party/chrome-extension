@@ -8,6 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       "dist/**",
+      "storybook-static/**",
       "node_modules/**",
       "src/infrastructure/api/generated/**",
       "public/**",
