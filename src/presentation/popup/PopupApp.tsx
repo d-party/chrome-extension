@@ -89,7 +89,7 @@ export function PopupApp(): React.JSX.Element {
   return (
     <div className="bg-background text-foreground">
       {/* Header */}
-      <header className="bg-gradient-to-br from-red-600 to-rose-700 px-5 py-4 text-white">
+      <header className="bg-gradient-to-br from-red-800 to-red-900 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
           <div className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
             <Users className="size-5" aria-hidden />
