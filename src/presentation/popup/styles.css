@@ -88,8 +88,14 @@
 html,
 body {
   margin: 0;
+  /* Transparent so the rounded #root corners aren't framed by a white box.
+     On recent Chrome the popup honours transparency and renders rounded
+     corners; on some older builds the corners may fall back to white. */
+  background: transparent;
 }
 
 #root {
   width: 340px;
+  border-radius: 14px;
+  overflow: hidden;
 }
