@@ -62,13 +62,15 @@ function decorateEpisodes(): void {
     playIcon.textContent = "play_circle_filled";
     playIcon.setAttribute("class", "material-icons play-btn");
     playIcon.setAttribute("target", "_blank");
-    playIcon.setAttribute("title", "別タブで再生");
+    playIcon.setAttribute("data-tooltip", "別タブで再生");
+    playIcon.setAttribute("aria-label", "別タブで再生");
     playIcon.setAttribute("href", "sc_d_pc?partId=" + partId);
     item.parentElement?.appendChild(playIcon);
 
     const popperIcon = document.createElement("a");
     popperIcon.textContent = "groups";
-    popperIcon.setAttribute("title", "パーティールームを作成");
+    popperIcon.setAttribute("data-tooltip", "パーティールームを作成して同時視聴");
+    popperIcon.setAttribute("aria-label", "パーティールームを作成して同時視聴");
     popperIcon.setAttribute("class", "material-icons popper-btn");
     popperIcon.setAttribute("target", "_blank");
     popperIcon.setAttribute("href", "sc_d_pc?partId=" + partId + "&party=create");

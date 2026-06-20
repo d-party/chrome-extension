@@ -8,6 +8,58 @@
     height: 100%;
     width: 10% !important;
     align-self: flex-end ;
+    position: relative;
+}
+
+/* マウスオーバーで説明を表示するツールチップ（data-tooltip 属性を使用） */
+.play-btn[data-tooltip]::after,
+.popper-btn[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    /* material-icons クラスのフォントを上書きし、文字が記号化しないようにする */
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    font-weight: normal;
+    white-space: nowrap;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.85);
+    padding: 4px 8px;
+    border-radius: 4px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 2147483647;
+}
+
+/* 吹き出しの矢印 */
+.play-btn[data-tooltip]::before,
+.popper-btn[data-tooltip]::before {
+    content: "";
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(0, 0, 0, 0.85);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    z-index: 2147483647;
+}
+
+.play-btn[data-tooltip]:hover::after,
+.popper-btn[data-tooltip]:hover::after,
+.play-btn[data-tooltip]:hover::before,
+.popper-btn[data-tooltip]:hover::before {
+    opacity: 1;
+    visibility: visible;
 }
 
 section.clearfix {
