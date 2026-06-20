@@ -1,5 +1,7 @@
 import { createRoot } from "react-dom/client";
 
+import { PortalContainerContext } from "@/lib/portalContainer";
+
 import { Sidebar } from "./Sidebar";
 import { SidebarController, SidebarStore, type SidebarTab } from "./sidebarStore";
 
@@ -46,12 +48,14 @@ export function mountSidebar(handlers: SidebarHandlers): MountedSidebar {
   shadow.appendChild(mountPoint);
 
   createRoot(mountPoint).render(
-    <Sidebar
-      store={store}
-      onCreateRoom={handlers.onCreateRoom}
-      onLeave={handlers.onLeave}
-      onTabChange={handlers.onTabChange}
-    />,
+    <PortalContainerContext.Provider value={mountPoint}>
+      <Sidebar
+        store={store}
+        onCreateRoom={handlers.onCreateRoom}
+        onLeave={handlers.onLeave}
+        onTabChange={handlers.onTabChange}
+      />
+    </PortalContainerContext.Provider>,
   );
 
   return { store, controller };

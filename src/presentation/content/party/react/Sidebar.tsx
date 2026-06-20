@@ -1,3 +1,4 @@
+import { AnimatePresence, motion } from "framer-motion";
 import {
   Check,
   Copy,
@@ -11,9 +12,17 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { FaEnvelope, FaFacebookF, FaXTwitter } from "react-icons/fa6";
+import { SiLine } from "react-icons/si";
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { FACEBOOK_APP_ID } from "@/infrastructure/env";
 
 import {
@@ -42,27 +51,64 @@ export function Sidebar({
 
   if (!state.visible || state.mode === "normal") return null;
 
-  if (state.collapsed) {
-    return (
-      <div className="flex h-full items-start justify-end p-2 text-foreground">
-        <button
-          type="button"
-          onClick={() => store.setCollapsed(false)}
-          aria-label="サイドバーを開く"
-          className="flex items-center gap-1 rounded-l-lg bg-red-800 px-2 py-3 text-white shadow-lg hover:bg-red-900"
-        >
-          <PanelRightOpen className="size-4" aria-hidden />
-          <span className="[writing-mode:vertical-rl] text-xs font-bold tracking-wide">
-            d-party
-          </span>
-        </button>
+  return (
+    <TooltipProvider delayDuration={150}>
+      <div className="relative h-full overflow-hidden">
+        <AnimatePresence mode="wait" initial={false}>
+          {state.collapsed ? (
+            <motion.div
+              key="handle"
+              initial={{ x: 32, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 32, opacity: 0 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="flex h-full items-start justify-end p-2 text-foreground"
+            >
+              <button
+                type="button"
+                onClick={() => store.setCollapsed(false)}
+                aria-label="サイドバーを開く"
+                className="flex items-center gap-1 rounded-l-lg bg-red-800 px-2 py-3 text-white shadow-lg hover:bg-red-900"
+              >
+                <PanelRightOpen className="size-4" aria-hidden />
+                <span className="[writing-mode:vertical-rl] text-xs font-bold tracking-wide">
+                  d-party
+                </span>
+              </button>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="panel"
+              initial={{ x: 320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 320, opacity: 0 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+              className="h-full"
+            >
+              <Panel
+                state={state}
+                store={store}
+                onCreateRoom={onCreateRoom}
+                onLeave={onLeave}
+                onTabChange={onTabChange}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-    );
-  }
+    </TooltipProvider>
+  );
+}
 
+function Panel({
+  state,
+  store,
+  onCreateRoom,
+  onLeave,
+  onTabChange,
+}: SidebarProps & { state: SidebarState }): React.JSX.Element {
   return (
     <div className="flex h-full w-80 flex-col bg-card text-card-foreground shadow-2xl ring-1 ring-border">
-      {/* Header */}
       <header className="flex items-center justify-between bg-gradient-to-br from-red-800 to-red-900 px-3 py-2.5 text-white">
         <div className="flex items-center gap-2">
           <PartyPopper className="size-4" aria-hidden />
@@ -164,20 +210,25 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
         <span className="flex-1 truncate px-1 text-xs" title={url}>
           {url || "ルーム作成後にリンクが表示されます"}
         </span>
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7 gap-1 px-2"
-          disabled={!url}
-          onClick={copy}
-        >
-          {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}
-          {copied ? "コピー済" : "コピー"}
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              size="icon"
+              variant="secondary"
+              className="size-7"
+              disabled={!url}
+              onClick={copy}
+              aria-label="リンクをコピー"
+            >
+              {copied ? <Check /> : <Copy />}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>{copied ? "コピーしました" : "リンクをコピー"}</TooltipContent>
+        </Tooltip>
       </div>
-      <div className="grid grid-cols-2 gap-1.5">
-        <ShareButton
-          label="X (Twitter)"
+      <div className="flex items-center justify-center gap-3">
+        <ShareIcon
+          label="Xでシェア"
           disabled={!url}
           onClick={() =>
             open(
@@ -189,9 +240,11 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
                 encodeURIComponent("dアニメストア,dパーティー"),
             )
           }
-        />
-        <ShareButton
-          label="LINE"
+        >
+          <FaXTwitter />
+        </ShareIcon>
+        <ShareIcon
+          label="LINEでシェア"
           disabled={!url}
           onClick={() =>
             open(
@@ -199,9 +252,11 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
                 encodeURIComponent(url),
             )
           }
-        />
-        <ShareButton
-          label="Facebook"
+        >
+          <SiLine />
+        </ShareIcon>
+        <ShareIcon
+          label="Facebookでシェア"
           disabled={!url}
           onClick={() =>
             open(
@@ -211,9 +266,11 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
                 encodeURIComponent(url),
             )
           }
-        />
-        <ShareButton
-          label="メール"
+        >
+          <FaFacebookF />
+        </ShareIcon>
+        <ShareIcon
+          label="メールでシェア"
           disabled={!url}
           onClick={() =>
             open(
@@ -224,31 +281,41 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
                 encodeURIComponent(url + "\n"),
             )
           }
-        />
+        >
+          <FaEnvelope />
+        </ShareIcon>
       </div>
     </div>
   );
 }
 
-function ShareButton({
+function ShareIcon({
   label,
   onClick,
   disabled,
+  children,
 }: {
   label: string;
   onClick: () => void;
   disabled?: boolean;
+  children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <Button
-      size="sm"
-      variant="outline"
-      className="h-8 text-xs"
-      disabled={disabled}
-      onClick={onClick}
-    >
-      {label}
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          size="icon"
+          variant="outline"
+          className="size-10 rounded-full"
+          disabled={disabled}
+          onClick={onClick}
+          aria-label={label}
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
   );
 }
 
