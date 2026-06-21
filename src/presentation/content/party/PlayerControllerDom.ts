@@ -74,7 +74,13 @@ export class PlayerControllerDom implements PlayerController {
   }
 
   onSync(option: SyncOption): void {
-    this.seek(option);
+    // drift が小さいときに毎回 seek すると音飛び・ジッタの原因になるので、
+    // 0.5s 以上ズレているときだけ seek する。レートと再生/停止状態は常に合わせる。
+    const v = video();
+    const target = option.time;
+    if (Math.abs(v.currentTime - target) > 0.5) {
+      this.seek(option);
+    }
     this.guard.suppress();
     this.changeRate(option);
     this.guard.suppress();

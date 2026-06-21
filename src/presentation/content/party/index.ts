@@ -131,13 +131,12 @@ function bindPlayerEvents(): void {
   const v = video();
 
   const active = () => guard.available && session.inRoom;
-  const announce = (operation: string, text: string) => {
+  // ルームへ操作を通知し、自己通知が有効でなければ履歴／トーストへ送信エントリを残す。
+  // ラベル・アイコンは operation キーから一元的に解決する（domain/history）。
+  const announce = (operation: string) => {
     session.sendActionNotification(operation);
-    if (!currentSettings.selfNotification) session.successHistory(text);
+    if (!currentSettings.selfNotification) session.notifySentOperation(operation);
   };
-  const fwd = "<i class='fas fa-forward notification-icon'></i>";
-  const back = "<i class='fas fa-fast-backward notification-icon'></i>";
-  const fastFwd = "<i class='fas fa-fast-forward notification-icon'></i>";
 
   v.addEventListener("playing", () => {
     v.setAttribute("autoplay", "");
@@ -164,13 +163,13 @@ function bindPlayerEvents(): void {
   bindClick("nextThumbinner", () => {
     if (active()) {
       session.sendVideoOperation("next_thumbnail");
-      announce("next", `『${fwd}』をルームに送信`);
+      announce("next");
     }
   });
   bindClass("nextButton", () => {
     if (active()) {
       session.sendVideoOperation("next");
-      announce("next", `『${fwd}』をルームに送信`);
+      announce("next");
     }
   });
   bindClass("prevButton", () => {
@@ -187,38 +186,30 @@ function bindPlayerEvents(): void {
 
   bindClass("backArea", () => {
     if (session.inRoom && guard.available) {
-      if (!v.paused) {
-        announce("play", "『<i class='fas fa-play notification-icon'></i>』をルームに送信");
-      } else {
-        announce("stop", "『<i class='fas fa-stop notification-icon'></i>』をルームに送信");
-      }
+      announce(!v.paused ? "play" : "stop");
     }
   });
 
   for (const cls of ["seekArea", "skipButton", "skip10Button", "skip30Button"]) {
     bindClass(cls, () => {
-      if (session.inRoom) announce("skip", `『${fastFwd}』をルームに送信`);
+      if (session.inRoom) announce("skip");
     });
   }
   bindClass("backButton", () => {
-    if (session.inRoom) announce("skip", `『${back}』をルームに送信`);
+    if (session.inRoom) announce("skip");
   });
   bindClass("back10Button", () => {
-    if (session.inRoom)
-      announce("skip", "『<i class='fas fa-step-backward notification-icon'></i>』をルームに送信");
+    if (session.inRoom) announce("skip");
   });
   bindClass("back30Button", () => {
-    if (session.inRoom) announce("skip", `『${back}』をルームに送信`);
+    if (session.inRoom) announce("skip");
   });
 
   document.querySelectorAll<HTMLElement>("#speed span").forEach((speed) => {
     speed.onclick = () => {
       if (session.inRoom) {
         const value = speed.getAttribute("data-value");
-        session.sendActionNotification("ratechange" + value);
-        if (!currentSettings.selfNotification) {
-          session.successHistory(`『× ${value}』をルームに送信`);
-        }
+        announce("ratechange" + value);
       }
     };
   });
@@ -239,15 +230,9 @@ function bindPlayerEvents(): void {
       "Numpad6", "Numpad7", "Numpad8", "Numpad9", "Numpad0",
     ];
     if (playKeys.includes(event.code)) {
-      if (active()) {
-        if (!v.paused) {
-          announce("play", "『<i class='fas fa-play notification-icon'></i>』をルームに送信");
-        } else {
-          announce("stop", "『<i class='fas fa-stop notification-icon'></i>』をルームに送信");
-        }
-      }
+      if (active()) announce(!v.paused ? "play" : "stop");
     } else if (skipKeys.includes(event.code)) {
-      if (session.inRoom) announce("skip", `『${fastFwd}』をルームに送信`);
+      if (session.inRoom) announce("skip");
     }
   });
 }

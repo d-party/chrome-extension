@@ -1,3 +1,4 @@
+import { describeOperation } from "@/domain/history";
 import type {
   IncomingMessage,
   OutgoingMessage,
@@ -43,6 +44,16 @@ export class RoomSession {
   private _inRoom = false;
   private joined = false;
   private resetDelayMs = 100;
+  // ホスト以外は video_operation をブロードキャストしない。create成功または
+  // host_change でホストになったときに true になる。
+  private isHost = false;
+  // ホストが定期的に現在の再生状態をブロードキャストし、ゲストの drift を
+  // 補正するハートビートタイマーのハンドル。
+  private heartbeatTimer: number | null = null;
+  static HEARTBEAT_MS = 5000;
+  // 手動 sync ボタン押下に対する sync_response のときだけトーストを出すためのフラグ。
+  // join 直後の自動 sync 時はトーストを抑制したいので必要。
+  private pendingManualSyncToast = false;
 
   userId = "";
   roomId = "";
@@ -63,15 +74,14 @@ export class RoomSession {
     this.joined = false;
     this.resetDelayMs = 100;
     this.deps.sidebar.setConnectionStatus("idle");
-    this.openSocket();
-    window.setTimeout(() => {
+    this.openSocket(() => {
       this.send({
         action: "create",
         user_name: this.userName,
         part_id: partId,
         request_id: now(),
       });
-    }, 500);
+    });
   }
 
   /** Join an existing room and immediately request a sync to the host. */
@@ -81,8 +91,7 @@ export class RoomSession {
     this.resetDelayMs = 200;
     this.roomId = roomId;
     this.deps.sidebar.setConnectionStatus("idle");
-    this.openSocket();
-    window.setTimeout(() => {
+    this.openSocket(() => {
       this.send({
         action: "join",
         user_name: this.userName,
@@ -90,20 +99,31 @@ export class RoomSession {
         request_id: now(),
       });
       this.deps.guard.allow();
-      this.requestSync();
-    }, 200);
+      // sync_request は join のレスポンス受信後（dispatch の case "join"）に送る。
+      // open 直後に同梱して送ると、ルーム未参加状態で sync_request がサーバ側で
+      // 評価され AttributeError を引き起こすことがある。
+    });
   }
 
-  private openSocket(): void {
+  // ソケットが OPEN になる前に send() を呼ぶと InvalidStateError が出て
+  // 「サーバーとの通信が終了」トーストが誤表示されるため、必ず onopen で送る。
+  private openSocket(onOpen?: () => void): void {
     this.deps.client.connect({
+      onOpen: () => onOpen?.(),
       onMessage: (message) => this.handleMessage(message),
       onClose: () => {
         if (this.joined) {
           this.deps.notifier.alert(SERVER_DISCONNECTED);
         } else if (this._inRoom) {
           this.deps.notifier.alert(CONNECT_FAILED);
-          this.deps.sidebar.addHistory(CONNECT_FAILED);
+          this.deps.sidebar.addHistory({
+            direction: "system",
+            icon: "error",
+            label: CONNECT_FAILED,
+          });
         }
+        this.stopHeartbeat();
+        this.isHost = false;
         this._inRoom = false;
         this.joined = false;
         this.deps.sidebar.setJoined(false);
@@ -114,6 +134,9 @@ export class RoomSession {
 
   // -- outgoing intents (called by DOM event handlers) -----------------------
 
+  // 仕様: ホスト/ゲストいずれも自分のプレイヤー操作（再生・停止・シーク等）を
+  // ルームへブロードキャストできる（相互にコントロール可）。フィードバックループは
+  // ActionGuard（suppress/allow）で抑止する。
   sendVideoOperation(operation: string): void {
     this.send({
       action: "video_operation",
@@ -125,7 +148,11 @@ export class RoomSession {
     this.deps.guard.allow();
   }
 
-  requestSync(): void {
+  requestSync(opts: { manual?: boolean } = {}): void {
+    // 初回参加時の自動シンクと、ユーザーが手動で sync ボタンを押した
+    // ときを区別して、手動のときだけ sync_response 受信でトーストを出す。
+    // 初回参加のシンクは「ルームに参加」通知と同時に出てしまうため。
+    if (opts.manual ?? true) this.pendingManualSyncToast = true;
     this.send({ action: "sync_request", request_id: now() });
     this.deps.guard.allow();
   }
@@ -160,7 +187,32 @@ export class RoomSession {
   /** Leave the room (caller is responsible for any UI teardown). */
   leave(): void {
     this.send({ action: "leave", user_name: this.userName, request_id: now() });
+    this.stopHeartbeat();
+    this.isHost = false;
     this._inRoom = false;
+  }
+
+  // ホスト専用: 5 秒ごとに現在の再生状態を video_operation("sync") として
+  // ブロードキャストし、ゲストの drift を継続的に補正する。
+  private startHeartbeat(): void {
+    if (this.heartbeatTimer !== null) return;
+    this.heartbeatTimer = window.setInterval(() => {
+      if (!this.isHost || !this._inRoom || !this.joined) return;
+      this.send({
+        action: "video_operation",
+        user_id: this.userId,
+        operation: "sync",
+        option: this.deps.player.getOption(),
+        request_id: now(),
+      });
+    }, RoomSession.HEARTBEAT_MS);
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer !== null) {
+      window.clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
   }
 
   private send(message: OutgoingMessage): void {
@@ -168,7 +220,11 @@ export class RoomSession {
       if (this._inRoom) this.deps.client.send(message);
     } catch {
       this.deps.notifier.alert(SERVER_DISCONNECTED);
-      this.deps.sidebar.addHistory(SERVER_DISCONNECTED);
+      this.deps.sidebar.addHistory({
+        direction: "system",
+        icon: "error",
+        label: SERVER_DISCONNECTED,
+      });
       this._inRoom = false;
     }
   }
@@ -193,40 +249,78 @@ export class RoomSession {
         this.userId = message.user.user_id;
         this.roomId = message.room_id;
         this.joined = true;
+        this.isHost = true;
+        this.startHeartbeat();
+        sidebar.setSelfUserId(this.userId);
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
         sidebar.setJoined(true);
         sidebar.setConnectionStatus("connected");
         sidebar.showSharePanel();
-        this.successHistory("ルームの作成に成功しました");
+        notifier.success("ルームの作成に成功しました");
+        sidebar.addHistory({
+          direction: "system",
+          icon: "party",
+          label: "ルームを作成しました",
+        });
         break;
       case "join":
         this.userId = message.user.user_id;
         this.roomId = message.room_id;
         this.joined = true;
+        sidebar.setSelfUserId(this.userId);
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
         sidebar.setJoined(true);
         sidebar.setConnectionStatus("connected");
         notifier.success("ルームに参加");
+        // join 確定後にホストの再生状態を要求する。openSocket の onopen 直後に
+        // 投げると、サーバ側で anime_user が未生成のまま sync_request が走り
+        // AttributeError → close code 1011 を踏むため、ここまで遅延させる。
+        // 初回シンクは「ルームに参加」と同時にトーストが出るのを避けるため manual:false。
+        this.requestSync({ manual: false });
         break;
       case "server_message":
         if (message.message_type === "host_change") {
-          this.infoHistory("ルームのホスト権限を獲得");
+          this.isHost = true;
+          this.startHeartbeat();
+          notifier.info("ルームのホスト権限を獲得");
+          sidebar.addHistory({
+            direction: "system",
+            icon: "host",
+            label: "ホスト権限を獲得しました",
+          });
+        } else if (message.message_type === "failed_join") {
+          // ルームが既に存在しない/終了済み。サーバはこの直後に close するので、
+          // onClose 側の誤った SERVER_DISCONNECTED ではなく明確なメッセージを出す。
+          this.joined = false;
+          notifier.alert("ルームに参加できませんでした");
+          sidebar.addHistory({
+            direction: "system",
+            icon: "error",
+            label: "ルームに参加できませんでした",
+          });
+          sidebar.setConnectionStatus("failed");
         }
         break;
       case "user_add":
-        notifier.info(
-          `『${message.user.user_name}』さんが参加 <i class='fas fa-glass-cheers'></i>`,
-        );
-        sidebar.addHistoryUser(message.user.user_name);
+        notifier.info(`『${message.user.user_name}』さんが参加 🎉`);
+        sidebar.addHistory({
+          direction: "system",
+          icon: "join",
+          label: `『${message.user.user_name}』さんが入室`,
+          user: message.user.user_name,
+        });
         break;
       case "user_list":
         sidebar.updateUserList(message.user_list);
         break;
       case "leave":
-        notifier.info(
-          `『${message.user.user_name}』さんが退室 <i class='fas fa-sign-out-alt'></i>`,
-        );
-        sidebar.leaveHistoryUser(message.user.user_name);
+        notifier.info(`『${message.user.user_name}』さんが退室`);
+        sidebar.addHistory({
+          direction: "system",
+          icon: "leave",
+          label: `『${message.user.user_name}』さんが退室`,
+          user: message.user.user_name,
+        });
         break;
       case "sync_request":
         this.sendSyncResponse(message.user);
@@ -234,7 +328,17 @@ export class RoomSession {
       case "sync_response":
         this.deps.guard.suppress();
         player.onAction("sync", message.option);
-        this.infoHistory("再生状況をホストにシンク");
+        // 手動 sync リクエストに対する返信のときだけトーストを出す。
+        // join 直後の自動シンクをも黙って適用したいため。
+        if (this.pendingManualSyncToast) {
+          this.pendingManualSyncToast = false;
+          this.deps.notifier.info("再生状況をホストにシンク");
+          this.deps.sidebar.addHistory({
+            direction: "system",
+            icon: "sync",
+            label: "再生状況をホストにシンクしました",
+          });
+        }
         break;
       case "operation_notification":
         this.notifyOperation(message.operation, message.user.user_name);
@@ -247,23 +351,36 @@ export class RoomSession {
     }
   }
 
+  // 他の参加者の操作通知 (operation_notification) を受信したとき、トーストと
+  // 履歴に「受信」エントリとして表示する。
   private notifyOperation(operation: string, userName: string): void {
-    const icon = OPERATION_ICONS[operation];
-    if (icon) {
-      this.infoHistory(`『${userName}』さんから『${icon}』を受信`);
-    }
+    const meta = describeOperation(operation);
+    if (!meta) return;
+    this.deps.notifier.info(`『${userName}』さんが${meta.label}`);
+    this.deps.sidebar.addHistory({
+      direction: "received",
+      icon: meta.icon,
+      label: meta.label,
+      user: userName,
+    });
   }
 
   // -- notifications ---------------------------------------------------------
 
-  successHistory(text: string): void {
-    this.deps.notifier.success(text);
-    this.deps.sidebar.addHistory(text);
-  }
-
-  private infoHistory(text: string): void {
-    this.deps.notifier.info(text);
-    this.deps.sidebar.addHistory(text);
+  /**
+   * 自分のプレイヤー操作をルームへ通知した直後（selfNotification が無効なとき）に
+   * トーストと履歴へ「送信」エントリを残す。`operation` は
+   * {@link sendActionNotification} に渡したものと同じワイヤ表現。
+   */
+  notifySentOperation(operation: string): void {
+    const meta = describeOperation(operation);
+    if (!meta) return;
+    this.deps.notifier.success(meta.label);
+    this.deps.sidebar.addHistory({
+      direction: "sent",
+      icon: meta.icon,
+      label: meta.label,
+    });
   }
 
   private get userName(): string {
@@ -274,17 +391,3 @@ export class RoomSession {
 function now(): number {
   return new Date().getTime();
 }
-
-/** Maps `operation_notification` operations to the original icon/label markup. */
-const OPERATION_ICONS: Record<string, string> = {
-  next: "<i class='fas fa-forward notification-icon'></i>",
-  play: "<i class='fas fa-play notification-icon'></i>",
-  stop: "<i class='fas fa-stop notification-icon'></i>",
-  skip: "<i class='fas fa-fast-forward notification-icon'></i>",
-  "ratechange0.5": "× 0.5",
-  "ratechange0.75": "× 0.75",
-  ratechange1: "× 1",
-  "ratechange1.25": "× 1.25",
-  "ratechange1.5": "× 1.5",
-  ratechange2: "× 2",
-};

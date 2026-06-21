@@ -67,10 +67,33 @@ export const HistoryTab: Story = {
     store.setMode("join");
     store.setJoined(true);
     store.updateUsers(SAMPLE_USERS);
-    store.addHistory("ルームの作成に成功しました");
-    store.addHistory("『たかし』さんが入室");
-    store.addHistory("再生状況をホストにシンク");
-    store.addHistory("『はなこ』さんが入室");
+    store.addHistory({ direction: "system", icon: "party", label: "ルームを作成しました" });
+    store.addHistory({
+      direction: "system",
+      icon: "join",
+      label: "『たかし』さんが入室",
+      user: "たかし",
+    });
+    store.addHistory({ direction: "sent", icon: "play", label: "再生" });
+    store.addHistory({
+      direction: "received",
+      icon: "pause",
+      label: "停止",
+      user: "たかし",
+    });
+    store.addHistory({
+      direction: "received",
+      icon: "rate",
+      label: "×1.5 倍速",
+      user: "はなこ",
+    });
+    store.addHistory({ direction: "system", icon: "sync", label: "再生状況をホストにシンクしました" });
+    store.addHistory({
+      direction: "system",
+      icon: "join",
+      label: "『はなこ』さんが入室",
+      user: "はなこ",
+    });
     store.setActiveTab("history");
     return frame(store);
   },

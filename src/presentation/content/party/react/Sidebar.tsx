@@ -1,17 +1,37 @@
 import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowDownLeft,
+  ArrowUpRight,
   Check,
   Copy,
+  Crown,
+  FastForward,
+  Gauge,
   History,
+  Info,
+  type LucideIcon,
   LogOut,
   PanelRightClose,
   PanelRightOpen,
   PartyPopper,
+  Pause,
+  Play,
+  RefreshCw,
   Share2,
+  SkipForward,
+  TriangleAlert,
+  UserMinus,
+  UserPlus,
   UserRound,
   Users,
 } from "lucide-react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { FaEnvelope, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { SiLine } from "react-icons/si";
 
@@ -25,13 +45,16 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { FACEBOOK_APP_ID } from "@/infrastructure/env";
+import { cn } from "@/lib/utils";
 
 import {
+  type HistoryEntry,
   type SidebarState,
   type SidebarStore,
   type SidebarTab,
 } from "./sidebarStore";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
+import type { HistoryIcon } from "@/domain/history";
 
 const CONNECTION_STATUS_META: Record<
   ConnectionStatus,
@@ -150,7 +173,7 @@ function Panel({
 }: SidebarProps & { state: SidebarState }): React.JSX.Element {
   return (
     <div className="flex h-full w-80 flex-col bg-card text-card-foreground shadow-2xl ring-1 ring-border">
-      <header className="flex items-center justify-between bg-neutral-950 px-3 py-2.5 text-white">
+      <header className="flex items-center justify-between bg-neutral-950/50 px-3 py-2.5 text-white">
         <div className="flex items-center gap-2">
           <Logo className="size-5" aria-hidden />
           <span className="text-sm font-bold tracking-tight text-[#cc0033]">d-party</span>
@@ -371,25 +394,186 @@ function ShareIcon({
   );
 }
 
+/** lucide icon for each operation/event kind. */
+const HISTORY_ICONS: Record<HistoryIcon, LucideIcon> = {
+  play: Play,
+  pause: Pause,
+  next: SkipForward,
+  skip: FastForward,
+  rate: Gauge,
+  join: UserPlus,
+  leave: UserMinus,
+  sync: RefreshCw,
+  host: Crown,
+  party: PartyPopper,
+  info: Info,
+  error: TriangleAlert,
+};
+
+const ALL_FILTER = "__all__";
+const SELF_FILTER = "__self__";
+
 function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Element {
+  const [filter, setFilter] = useState<string>(ALL_FILTER);
   const endRef = useRef<HTMLDivElement>(null);
+
+  // 履歴に登場した「相手の参加者」を絞り込み候補として集める。
+  const actors = useMemo(() => {
+    const names = new Set<string>();
+    for (const entry of state.history) if (entry.user) names.add(entry.user);
+    return [...names];
+  }, [state.history]);
+  const hasSent = useMemo(
+    () => state.history.some((entry) => entry.direction === "sent"),
+    [state.history],
+  );
+
+  // 選択中の絞り込み候補が履歴から消えたら "すべて" 扱いにする（state は持ち越して
+  // 候補が再び現れたら復帰させる）。
+  const filterValid =
+    filter === ALL_FILTER ||
+    (filter === SELF_FILTER ? hasSent : actors.includes(filter));
+  const activeFilter = filterValid ? filter : ALL_FILTER;
+
+  const visible = useMemo(
+    () =>
+      state.history.filter((entry) => {
+        if (activeFilter === ALL_FILTER) return true;
+        if (activeFilter === SELF_FILTER) return entry.direction === "sent";
+        return entry.user === activeFilter;
+      }),
+    [state.history, activeFilter],
+  );
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ block: "end" });
-  }, [state.history.length]);
+  }, [visible.length]);
 
   if (state.history.length === 0) {
     return <EmptyHint text="まだ履歴はありません" />;
   }
+
+  const showFilter = hasSent || actors.length > 0;
+
   return (
-    <ul className="flex flex-col gap-1 px-1">
-      {state.history.map((entry) => (
-        <li key={entry.id} className="flex gap-2 text-xs">
-          <span className="shrink-0 font-mono text-muted-foreground">[{entry.time}]</span>
-          <span className="text-foreground">{entry.text}</span>
-        </li>
+    <div className="flex h-full flex-col">
+      {showFilter && (
+        <HistoryFilter
+          filter={activeFilter}
+          onChange={setFilter}
+          actors={actors}
+          hasSent={hasSent}
+        />
+      )}
+      {visible.length === 0 ? (
+        <EmptyHint text="条件に一致する履歴はありません" />
+      ) : (
+        <ul className="flex flex-col gap-0.5 px-0.5">
+          {visible.map((entry) => (
+            <HistoryRow key={entry.id} entry={entry} />
+          ))}
+          <div ref={endRef} />
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function HistoryFilter({
+  filter,
+  onChange,
+  actors,
+  hasSent,
+}: {
+  filter: string;
+  onChange: (value: string) => void;
+  actors: string[];
+  hasSent: boolean;
+}): React.JSX.Element {
+  const options = [
+    { key: ALL_FILTER, label: "すべて" },
+    ...(hasSent ? [{ key: SELF_FILTER, label: "あなた" }] : []),
+    ...actors.map((name) => ({ key: name, label: name })),
+  ];
+  return (
+    <div className="mb-2 flex flex-wrap gap-1 px-0.5">
+      {options.map((option) => (
+        <button
+          key={option.key}
+          type="button"
+          onClick={() => onChange(option.key)}
+          aria-pressed={filter === option.key}
+          className={cn(
+            "max-w-[8rem] truncate rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors",
+            filter === option.key
+              ? "bg-red-600 text-white"
+              : "bg-muted text-muted-foreground hover:bg-muted/70",
+          )}
+        >
+          {option.label}
+        </button>
       ))}
-      <div ref={endRef} />
-    </ul>
+    </div>
+  );
+}
+
+function HistoryRow({ entry }: { entry: HistoryEntry }): React.JSX.Element {
+  const OpIcon = HISTORY_ICONS[entry.icon];
+  const isSystem = entry.direction === "system";
+  return (
+    <li className="flex items-center gap-2 rounded-md px-1.5 py-1 hover:bg-muted/50">
+      <DirectionBadge entry={entry} />
+      <time className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
+        {entry.time}
+      </time>
+      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+        {entry.direction === "received" && entry.user && (
+          <span className="max-w-[5.5rem] shrink-0 truncate text-xs font-semibold text-foreground">
+            {entry.user}
+          </span>
+        )}
+        {!isSystem && (
+          <OpIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+        )}
+        <span className="truncate text-xs text-foreground">{entry.label}</span>
+      </div>
+    </li>
+  );
+}
+
+/** Leading badge: a send/receive arrow for operations, the event icon for
+ * system messages. */
+function DirectionBadge({ entry }: { entry: HistoryEntry }): React.JSX.Element {
+  if (entry.direction === "sent") {
+    return (
+      <span
+        title="送信"
+        aria-label="送信"
+        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-red-500/15 text-red-600"
+      >
+        <ArrowUpRight className="size-3" aria-hidden />
+      </span>
+    );
+  }
+  if (entry.direction === "received") {
+    return (
+      <span
+        title="受信"
+        aria-label="受信"
+        className="flex size-5 shrink-0 items-center justify-center rounded-full bg-sky-500/15 text-sky-600"
+      >
+        <ArrowDownLeft className="size-3" aria-hidden />
+      </span>
+    );
+  }
+  const SystemIcon = HISTORY_ICONS[entry.icon];
+  return (
+    <span
+      aria-hidden
+      className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+    >
+      <SystemIcon className="size-3" />
+    </span>
   );
 }
 
@@ -401,15 +585,23 @@ function UsersPanel({ state }: { state: SidebarState }): React.JSX.Element {
     <div className="px-1">
       <p className="mb-2 text-xs text-muted-foreground">{state.users.length}人が参加中</p>
       <ul className="flex flex-col gap-1">
-        {state.users.map((user) => (
-          <li
-            key={user.user_id}
-            className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
-          >
-            <UserRound className="size-4 shrink-0 text-red-600" aria-hidden />
-            <span className="truncate">{user.user_name}</span>
-          </li>
-        ))}
+        {state.users.map((user) => {
+          const isSelf = user.user_id === state.selfUserId;
+          return (
+            <li
+              key={user.user_id}
+              className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
+            >
+              <UserRound className="size-4 shrink-0 text-red-600" aria-hidden />
+              <span className="truncate">{user.user_name}</span>
+              {isSelf && (
+                <span className="ml-auto shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-white">
+                  you
+                </span>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

@@ -1,9 +1,10 @@
 import {
-  BellOff,
+  Bell,
   Check,
   ExternalLink,
-  EyeOff,
+  Eye,
   type LucideIcon,
+  Pencil,
   SlidersHorizontal,
   Smile,
   User,
@@ -26,6 +27,12 @@ const TOGGLES: {
   label: string;
   description: string;
   icon: LucideIcon;
+  /**
+   * When true, the switch shows the inverse of the stored value so that
+   * "ON = feature enabled" holds even for negatively-named storage keys
+   * (e.g. `hideReaction`). The storage keys stay backward-compatible.
+   */
+  invert?: boolean;
 }[] = [
   {
     key: "autoAnotherTab",
@@ -35,21 +42,24 @@ const TOGGLES: {
   },
   {
     key: "hideReaction",
-    label: "リアクションを非表示",
-    description: "他の人のリアクション演出を隠す",
-    icon: EyeOff,
+    label: "リアクションを表示",
+    description: "他の人のリアクション演出を表示する",
+    icon: Eye,
+    invert: true,
   },
   {
     key: "hideReactionIcon",
-    label: "リアクションボタンを非表示",
-    description: "プレイヤーのリアクションボタンを隠す",
+    label: "リアクションボタンを表示",
+    description: "プレイヤーのリアクションボタンを表示する",
     icon: Smile,
+    invert: true,
   },
   {
     key: "selfNotification",
-    label: "自分の操作を通知しない",
-    description: "自分の再生操作の通知を抑制する",
-    icon: BellOff,
+    label: "自分の操作を通知",
+    description: "自分の再生操作を通知する",
+    icon: Bell,
+    invert: true,
   },
 ];
 
@@ -62,22 +72,29 @@ function appVersion(): string {
 }
 
 export function PopupApp(): React.JSX.Element {
-  const { settings, loaded, update } = useSettings();
+  const { settings, update } = useSettings();
+  const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [saved, setSaved] = useState(false);
-  const seeded = useRef(false);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  // Seed the editable name field once settings have loaded.
+  const startEditing = (): void => {
+    setDraftName(settings.userName);
+    setEditing(true);
+  };
+
+  // Focus the field as soon as editing starts.
   useEffect(() => {
-    if (loaded && !seeded.current) {
-      seeded.current = true;
-      setDraftName(settings.userName);
+    if (editing) {
+      inputRef.current?.focus();
+      inputRef.current?.select();
     }
-  }, [loaded, settings.userName]);
+  }, [editing]);
 
   const submitName = async (event: React.FormEvent): Promise<void> => {
     event.preventDefault();
     await update("userName", draftName);
+    setEditing(false);
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
   };
@@ -85,14 +102,14 @@ export function PopupApp(): React.JSX.Element {
   return (
     <div className="bg-background text-foreground">
       {/* Header */}
-      <header className="bg-gradient-to-br from-red-800 to-red-900 px-5 py-4 text-white">
+      <header className="border-b-2 border-red-600 bg-neutral-950 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/25 backdrop-blur">
-            <Users className="size-5" aria-hidden />
+          <div className="flex size-9 items-center justify-center rounded-xl bg-white/10 ring-1 ring-white/20 backdrop-blur">
+            <Users className="size-5 text-red-600" aria-hidden />
           </div>
           <div className="leading-tight">
-            <h1 className="text-base font-bold tracking-tight">d-party</h1>
-            <p className="text-xs text-white/80">dアニメストア 同時視聴の設定</p>
+            <h1 className="text-base font-bold tracking-tight text-red-600">d-party</h1>
+            <p className="text-xs text-white/70">dアニメストア 同時視聴の設定</p>
           </div>
         </div>
       </header>
@@ -104,29 +121,58 @@ export function PopupApp(): React.JSX.Element {
             <User className="size-4 text-red-600" aria-hidden />
             <h2 className="text-sm font-semibold">ユーザー設定</h2>
           </div>
-          <form className="flex items-end gap-2" onSubmit={submitName}>
-            <div className="flex flex-1 flex-col gap-1.5">
+          {editing ? (
+            <form className="flex flex-col gap-1.5" onSubmit={submitName}>
               <Label htmlFor="user-name" className="text-xs text-muted-foreground">
                 表示名（15文字以下）
               </Label>
-              <Input
-                id="user-name"
-                maxLength={15}
-                placeholder="あなたの名前"
-                value={draftName}
-                onChange={(e) => setDraftName(e.target.value)}
-              />
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={inputRef}
+                  id="user-name"
+                  className="flex-1"
+                  maxLength={15}
+                  placeholder="あなたの名前"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                />
+                <Button
+                  type="submit"
+                  size="icon"
+                  variant="ghost"
+                  className="text-red-600 hover:text-red-600"
+                  aria-label="表示名を確定"
+                >
+                  <Check className="size-5" aria-hidden />
+                </Button>
+              </div>
+            </form>
+          ) : (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs text-muted-foreground">表示名</span>
+              <div className="flex items-center gap-2">
+                <p className="flex-1 truncate text-sm font-medium">
+                  {settings.userName || (
+                    <span className="text-muted-foreground">未設定</span>
+                  )}
+                </p>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground hover:text-foreground"
+                  onClick={startEditing}
+                  aria-label={saved ? "保存しました" : "表示名を編集"}
+                >
+                  {saved ? (
+                    <Check className="size-5 text-red-600" aria-hidden />
+                  ) : (
+                    <Pencil className="size-5" aria-hidden />
+                  )}
+                </Button>
+              </div>
             </div>
-            <Button type="submit" size="sm" className="gap-1">
-              {saved ? (
-                <>
-                  <Check className="size-4" aria-hidden /> 保存済
-                </>
-              ) : (
-                "保存"
-              )}
-            </Button>
-          </form>
+          )}
         </section>
 
         {/* Player settings */}
@@ -136,7 +182,7 @@ export function PopupApp(): React.JSX.Element {
             <h2 className="text-sm font-semibold">プレイヤー設定</h2>
           </div>
           <div className="mt-1 space-y-0.5">
-            {TOGGLES.map(({ key, label, description, icon: Icon }) => (
+            {TOGGLES.map(({ key, label, description, icon: Icon, invert }) => (
               <label
                 key={key}
                 htmlFor={key}
@@ -151,8 +197,10 @@ export function PopupApp(): React.JSX.Element {
                 </span>
                 <Switch
                   id={key}
-                  checked={settings[key]}
-                  onCheckedChange={(checked) => void update(key, checked)}
+                  checked={invert ? !settings[key] : settings[key]}
+                  onCheckedChange={(checked) =>
+                    void update(key, invert ? !checked : checked)
+                  }
                 />
               </label>
             ))}

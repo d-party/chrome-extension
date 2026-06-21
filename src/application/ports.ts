@@ -6,6 +6,7 @@
 
 import type { PlayerOption, SyncOption, User } from "@/domain/protocol";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
+import type { HistoryEntryInput } from "@/domain/history";
 import type { ReactionType } from "@/domain/reactions";
 import type { Settings } from "@/domain/settings";
 
@@ -29,11 +30,12 @@ export interface PlayerController {
 export interface SidebarView {
   setShareLink(roomUrl: string): void;
   setJoined(joined: boolean): void;
+  /** Identify the local user so the user list can mark them as "you". */
+  setSelfUserId(userId: string): void;
   showSharePanel(): void;
   setConnectionStatus(status: ConnectionStatus): void;
-  addHistory(text: string): void;
-  addHistoryUser(userName: string): void;
-  leaveHistoryUser(userName: string): void;
+  /** Append a structured entry to the history log. */
+  addHistory(entry: HistoryEntryInput): void;
   updateUserList(users: User[]): void;
   hideSidebar(): void;
 }

@@ -1,13 +1,13 @@
 import type { SidebarView } from "@/application/ports";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
+import type { HistoryEntryInput } from "@/domain/history";
 import type { User } from "@/domain/protocol";
 
 export type SidebarTab = "share" | "history" | "users" | "control";
 
-export interface HistoryEntry {
+export interface HistoryEntry extends HistoryEntryInput {
   id: number;
   time: string;
-  text: string;
 }
 
 export interface SidebarState {
@@ -24,6 +24,8 @@ export interface SidebarState {
   shareUrl: string;
   shareTitle: string;
   users: User[];
+  /** user_id of the local user, used to mark them as "you" in the list. */
+  selfUserId: string;
   history: HistoryEntry[];
 }
 
@@ -37,6 +39,7 @@ const INITIAL_STATE: SidebarState = {
   shareUrl: "",
   shareTitle: "",
   users: [],
+  selfUserId: "",
   history: [],
 };
 
@@ -86,6 +89,9 @@ export class SidebarStore {
   updateUsers(users: User[]): void {
     this.patch({ users });
   }
+  setSelfUserId(selfUserId: string): void {
+    this.patch({ selfUserId });
+  }
   show(): void {
     this.patch({ visible: true });
   }
@@ -99,11 +105,11 @@ export class SidebarStore {
     this.patch({ collapsed: !this.state.collapsed });
   }
 
-  addHistory(text: string): void {
+  addHistory(entry: HistoryEntryInput): void {
     this.patch({
       history: [
         ...this.state.history,
-        { id: ++this.seq, time: formatTime(), text: stripHtml(text) },
+        { ...entry, id: ++this.seq, time: formatTime() },
       ],
     });
   }
@@ -122,20 +128,17 @@ export class SidebarController implements SidebarView {
   setJoined(joined: boolean): void {
     this.store.setJoined(joined);
   }
+  setSelfUserId(userId: string): void {
+    this.store.setSelfUserId(userId);
+  }
   setConnectionStatus(status: ConnectionStatus): void {
     this.store.setConnectionStatus(status);
   }
   showSharePanel(): void {
     this.store.setActiveTab("share");
   }
-  addHistory(text: string): void {
-    this.store.addHistory(text);
-  }
-  addHistoryUser(userName: string): void {
-    this.store.addHistory(`『${userName}』さんが入室`);
-  }
-  leaveHistoryUser(userName: string): void {
-    this.store.addHistory(`『${userName}』さんが退室`);
+  addHistory(entry: HistoryEntryInput): void {
+    this.store.addHistory(entry);
   }
   updateUserList(users: User[]): void {
     this.store.updateUsers(users);
@@ -149,9 +152,4 @@ function formatTime(): string {
   const now = new Date();
   const pad = (value: number) => ("0" + value).slice(-2);
   return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
-}
-
-/** History strings may carry Font Awesome markup; show them as plain text. */
-function stripHtml(text: string): string {
-  return text.replace(/<[^>]*>/g, "").trim();
 }
