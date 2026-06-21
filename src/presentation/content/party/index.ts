@@ -12,6 +12,7 @@ import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 import { getParam } from "../dom/utils";
 import { PlayerControllerDom } from "./PlayerControllerDom";
 import { mountSidebar } from "./react/mountSidebar";
+import { mountPipButton } from "./react/PipButton";
 import { mountPlayerControls } from "./react/PlayerControls";
 import type { SidebarTab } from "./react/sidebarStore";
 import { ReactionViewReact } from "./ReactionViewReact";
@@ -87,6 +88,11 @@ window.addEventListener("load", () => {
   if (mode !== "normal") video().removeAttribute("autoplay");
   nextPageAnotherTab();
 });
+
+// The PiP button is room-independent: mount it on every player page as soon as
+// dアニメストア builds its control bar (the native player JS injects it after
+// the video initializes, so we wait for the fullscreen button to appear).
+mountPipControl();
 
 // Hide the sidebar in fullscreen. The React toast viewport mounts to its own
 // Shadow DOM host and doesn't need repositioning.
@@ -261,6 +267,69 @@ function addControlButtons(): void {
       },
     },
   });
+}
+
+/**
+ * Toggle native Picture-in-Picture for the player video. Local-only: PiP is a
+ * per-viewer preference and is not propagated over the room WebSocket.
+ */
+async function togglePictureInPicture(): Promise<void> {
+  const v = video();
+  if (!document.pictureInPictureEnabled || v.disablePictureInPicture) {
+    notifier.alert(
+      "このブラウザ／動画ではピクチャーインピクチャーを利用できません",
+    );
+    return;
+  }
+  try {
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+    } else {
+      await v.requestPictureInPicture();
+    }
+  } catch {
+    notifier.alert("ピクチャーインピクチャーの切り替えに失敗しました");
+  }
+}
+
+/**
+ * Mount the PiP button into the dアニメストア control bar, immediately left of
+ * the native fullscreen (最大化) button. The control bar is injected by the
+ * page's player JS after the video initializes, so we wait for the fullscreen
+ * button to appear before mounting.
+ */
+function mountPipControl(): void {
+  const mount = (fullscreenButton: Element): void => {
+    mountPipButton({
+      fullscreenButton,
+      initialSettings: currentSettings,
+      // Deliver the stored value immediately (the settings load is async and
+      // may not have resolved by mount time), then keep it live on changes.
+      subscribe: (cb) => {
+        void settingsRepo.getAll().then(cb);
+        return settingsRepo.onChange(cb);
+      },
+      onToggle: () => void togglePictureInPicture(),
+    });
+  };
+
+  // `.fullscreen` alone is also toggled on containers while in fullscreen mode,
+  // so match the control-bar button precisely as `.fullscreen.mainButton`.
+  const findButton = () => document.querySelector(".fullscreen.mainButton");
+
+  const existing = findButton();
+  if (existing) {
+    mount(existing);
+    return;
+  }
+  const observer = new MutationObserver(() => {
+    const el = findButton();
+    if (el) {
+      observer.disconnect();
+      mount(el);
+    }
+  });
+  observer.observe(document.documentElement, { childList: true, subtree: true });
 }
 
 function nextPageAnotherTab(): void {

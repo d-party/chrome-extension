@@ -1,10 +1,13 @@
 import {
   Bell,
   Check,
+  ChevronDown,
   ExternalLink,
   Eye,
   type LucideIcon,
+  MonitorPlay,
   Pencil,
+  PictureInPicture2,
   SlidersHorizontal,
   Smile,
   User,
@@ -22,7 +25,7 @@ import { useSettings } from "./useSettings";
 
 type ToggleKey = Exclude<keyof Settings, "userName">;
 
-const TOGGLES: {
+interface Toggle {
   key: ToggleKey;
   label: string;
   description: string;
@@ -33,13 +36,10 @@ const TOGGLES: {
    * (e.g. `hideReaction`). The storage keys stay backward-compatible.
    */
   invert?: boolean;
-}[] = [
-  {
-    key: "autoAnotherTab",
-    label: "別タブで自動再生",
-    description: "動画を新しいタブで開く",
-    icon: ExternalLink,
-  },
+}
+
+/** Watch-party settings: reactions and operation notifications. */
+const SYNC_TOGGLES: Toggle[] = [
   {
     key: "hideReaction",
     label: "リアクションを表示",
@@ -60,6 +60,22 @@ const TOGGLES: {
     description: "自分の再生操作を通知する",
     icon: Bell,
     invert: true,
+  },
+];
+
+/** Utility settings independent of the watch party. */
+const UTILITY_TOGGLES: Toggle[] = [
+  {
+    key: "autoAnotherTab",
+    label: "別タブで自動再生",
+    description: "動画を新しいタブで開く",
+    icon: ExternalLink,
+  },
+  {
+    key: "enablePictureInPicture",
+    label: "ピクチャーインピクチャーを有効",
+    description: "プレイヤーに PiP ボタンを表示する",
+    icon: PictureInPicture2,
   },
 ];
 
@@ -98,6 +114,27 @@ export function PopupApp(): React.JSX.Element {
     setSaved(true);
     window.setTimeout(() => setSaved(false), 1500);
   };
+
+  const renderToggle = ({ key, label, description, icon: Icon, invert }: Toggle) => (
+    <label
+      key={key}
+      htmlFor={key}
+      className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/70"
+    >
+      <span className="flex items-center gap-3">
+        <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+        <span className="flex flex-col">
+          <span className="text-sm font-medium leading-tight">{label}</span>
+          <span className="text-xs text-muted-foreground">{description}</span>
+        </span>
+      </span>
+      <Switch
+        id={key}
+        checked={invert ? !settings[key] : settings[key]}
+        onCheckedChange={(checked) => void update(key, invert ? !checked : checked)}
+      />
+    </label>
+  );
 
   return (
     <div className="bg-background text-foreground">
@@ -175,42 +212,64 @@ export function PopupApp(): React.JSX.Element {
           )}
         </section>
 
-        {/* Player settings */}
-        <section className="rounded-xl border bg-card p-2 shadow-sm">
-          <div className="flex items-center gap-2 px-2 py-1.5">
-            <SlidersHorizontal className="size-4 text-red-600" aria-hidden />
-            <h2 className="text-sm font-semibold">プレイヤー設定</h2>
-          </div>
-          <div className="mt-1 space-y-0.5">
-            {TOGGLES.map(({ key, label, description, icon: Icon, invert }) => (
-              <label
-                key={key}
-                htmlFor={key}
-                className="flex cursor-pointer items-center justify-between gap-3 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/70"
-              >
-                <span className="flex items-center gap-3">
-                  <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <span className="flex flex-col">
-                    <span className="text-sm font-medium leading-tight">{label}</span>
-                    <span className="text-xs text-muted-foreground">{description}</span>
-                  </span>
-                </span>
-                <Switch
-                  id={key}
-                  checked={invert ? !settings[key] : settings[key]}
-                  onCheckedChange={(checked) =>
-                    void update(key, invert ? !checked : checked)
-                  }
-                />
-              </label>
-            ))}
-          </div>
-        </section>
+        {/* Watch-party settings */}
+        <ToggleSection
+          title="同時視聴設定"
+          icon={MonitorPlay}
+          toggles={SYNC_TOGGLES}
+          renderToggle={renderToggle}
+        />
+
+        {/* Utility settings (kept last) */}
+        <ToggleSection
+          title="ユーティリティ設定"
+          icon={SlidersHorizontal}
+          toggles={UTILITY_TOGGLES}
+          renderToggle={renderToggle}
+        />
       </main>
 
       <footer className="px-4 pb-3 text-center text-[11px] text-muted-foreground">
         v{appVersion()} · powered by U-Not
       </footer>
     </div>
+  );
+}
+
+/**
+ * A settings section that is collapsed by default and expands on click, so the
+ * popup stays short enough to avoid scrolling until a section is opened.
+ */
+function ToggleSection({
+  title,
+  icon: Icon,
+  toggles,
+  renderToggle,
+}: {
+  title: string;
+  icon: LucideIcon;
+  toggles: Toggle[];
+  renderToggle: (toggle: Toggle) => React.JSX.Element;
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="rounded-xl border bg-card p-2 shadow-sm">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/70"
+      >
+        <Icon className="size-4 text-red-600" aria-hidden />
+        <h2 className="text-sm font-semibold">{title}</h2>
+        <ChevronDown
+          className={`ml-auto size-4 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
+      </button>
+      {open && <div className="mt-1 space-y-0.5">{toggles.map(renderToggle)}</div>}
+    </section>
   );
 }

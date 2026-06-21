@@ -14,6 +14,7 @@ export class ChromeStorageSettingsRepository {
     return {
       autoAnotherTab: bool(stored[STORAGE_KEYS.autoAnotherTab], DEFAULT_SETTINGS.autoAnotherTab),
       autoUserNameDecision: bool(stored[STORAGE_KEYS.autoUserNameDecision], DEFAULT_SETTINGS.autoUserNameDecision),
+      enablePictureInPicture: bool(stored[STORAGE_KEYS.enablePictureInPicture], DEFAULT_SETTINGS.enablePictureInPicture),
       hideReaction: bool(stored[STORAGE_KEYS.hideReaction], DEFAULT_SETTINGS.hideReaction),
       hideReactionIcon: bool(stored[STORAGE_KEYS.hideReactionIcon], DEFAULT_SETTINGS.hideReactionIcon),
       selfNotification: bool(stored[STORAGE_KEYS.selfNotification], DEFAULT_SETTINGS.selfNotification),

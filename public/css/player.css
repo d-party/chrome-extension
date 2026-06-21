@@ -249,6 +249,28 @@
   color: #6380ad;
 }
 
+/* PiP ボタン: dアニメストアのコントロールバー（最大化ボタンの左）に並べる。
+   ネイティブの .mainButton button（44x50, opacity .6, hover で 1）に合わせる。 */
+.pip_main_button {
+  width: 44px;
+  height: 50px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: top;
+  cursor: pointer;
+}
+.pip_main_button svg {
+  width: 26px;
+  height: 26px;
+  color: #fff;
+  opacity: 0.6;
+  transition: opacity 0.1s;
+}
+.pip_main_button:hover svg {
+  opacity: 1;
+}
+
 .sync_button:hover {
   animation: r1 1.5s linear infinite;
 }
