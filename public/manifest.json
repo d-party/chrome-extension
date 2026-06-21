@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "d-party",
   "description": "dアニメストアでは行う事ができない、オンラインでの『同時に視聴機能』を提供するための拡張機能",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "icons": {
     "16": "icon/icon16.png",
     "48": "icon/icon48.png",
@@ -15,7 +15,9 @@
     "default_title": "d-party 設定",
     "default_popup": "popup.html"
   },
-  "permissions": ["storage"],
+  "permissions": [
+    "storage"
+  ],
   "host_permissions": [
     "https://animestore.docomo.ne.jp/*",
     "https://anime.dmkt-sp.jp/*",
@@ -28,8 +30,13 @@
         "https://animestore.docomo.ne.jp/animestore/sc_d_pc?*",
         "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
       ],
-      "js": ["js/content-party.js"],
-      "css": ["css/player.css", "css/style.css"]
+      "js": [
+        "js/content-party.js"
+      ],
+      "css": [
+        "css/player.css",
+        "css/style.css"
+      ]
     },
     {
       "matches": [
@@ -38,21 +45,32 @@
         "https://anime.dmkt-sp.jp/animestore/ci_pc?*",
         "https://anime.dmkt-sp.jp/animestore/tp_pc*"
       ],
-      "js": ["js/content-store.js"],
-      "css": ["css/style.css"]
+      "js": [
+        "js/content-store.js"
+      ],
+      "css": [
+        "css/style.css"
+      ]
     },
     {
       "matches": [
         "https://d-party.net/anime-store/lobby/*",
         "http://localhost/anime-store/lobby/*"
       ],
-      "js": ["js/content-version.js"],
-      "css": ["css/style.css"]
+      "js": [
+        "js/content-version.js"
+      ],
+      "css": [
+        "css/style.css"
+      ]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/*", "js/sidebar-style.css"],
+      "resources": [
+        "assets/*",
+        "js/sidebar-style.css"
+      ],
       "matches": [
         "https://animestore.docomo.ne.jp/*",
         "https://anime.dmkt-sp.jp/*"
