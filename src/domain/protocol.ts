@@ -44,6 +44,11 @@ export interface CreateRoomMessage {
   action: "create";
   user_name: string;
   part_id: string;
+  /**
+   * 視聴中アニメのタイトル（ページ DOM から取得）。OGP 表示用にルーム作成時に
+   * 一度だけ送る。バックエンドは未指定でも受理する（旧バージョン互換）。
+   */
+  title: string;
   request_id: number;
 }
 
