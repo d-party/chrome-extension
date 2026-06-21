@@ -13,7 +13,7 @@ import { getParam } from "../dom/utils";
 import { PlayerControllerDom } from "./PlayerControllerDom";
 import { mountSidebar } from "./react/mountSidebar";
 import type { SidebarTab } from "./react/sidebarStore";
-import { ReactionViewDom } from "./ReactionViewDom";
+import { ReactionViewReact } from "./ReactionViewReact";
 
 /**
  * Content script for the dアニメストア player page (sc_d_pc). Wires the
@@ -34,7 +34,7 @@ settingsRepo.onChange((s) => (currentSettings = s));
 
 // --- composition root -------------------------------------------------------
 const guard = new ActionGuard();
-const reactions = new ReactionViewDom();
+const reactions = new ReactionViewReact();
 const player = new PlayerControllerDom(guard);
 const client = new PartyWebSocketClient(WEBSOCKET_ENDPOINT);
 
