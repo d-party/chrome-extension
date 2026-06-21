@@ -3,13 +3,19 @@ name: release
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Next Version"
+      bump_type:
+        description: "Version bump type"
         required: true
-        default: "x.y.z"
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
       release_note:
-        description: "release note"
+        description: "Release notes (optional)"
         required: false
+        type: string
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -17,12 +23,80 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Create Release
+        with:
+          ref: main
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Bump version
+        id: version
+        run: |
+          NEW_VERSION=$(node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const [major, minor, patch] = pkg.version.split('.').map(Number);
+            const bump = '${{ github.event.inputs.bump_type }}';
+            if (bump === 'major') pkg.version = (major+1)+'.0.0';
+            else if (bump === 'minor') pkg.version = major+'.'+(minor+1)+'.0';
+            else pkg.version = major+'.'+minor+'.'+(patch+1);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+            console.log('v' + pkg.version);
+          ")
+          VERSION_NUM=${NEW_VERSION#v}
+          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version_num=${VERSION_NUM}" >> "$GITHUB_OUTPUT"
+          export VERSION_NUM
+          node << 'EOF'
+          const fs = require('fs');
+          const m = JSON.parse(fs.readFileSync('public/manifest.json', 'utf8'));
+          m.version = process.env.VERSION_NUM;
+          fs.writeFileSync('public/manifest.json', JSON.stringify(m, null, 2) + '\n');
+          EOF
+
+      - name: Commit and push version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json public/manifest.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }} [skip ci]"
+          git push origin HEAD:main
+
+      - name: Generate API client
+        run: pnpm api:generate
+
+      - name: Build extension
+        run: pnpm build
+
+      - name: Package extension
+        run: |
+          cd dist
+          zip -r "../d-party_${{ steps.version.outputs.new_version }}.zip" .
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: Release v${{ github.event.inputs.version }}
-          body: |
-            ${{ github.event.inputs.release_note }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ steps.version.outputs.new_version }}
+          name: Release ${{ steps.version.outputs.new_version }}
+          body: ${{ github.event.inputs.release_note }}
+          files: d-party_${{ steps.version.outputs.new_version }}.zip
+          generate_release_notes: true
+          target_commitish: main
+
+      - name: Upload to Chrome Web Store
+        uses: mnao305/chrome-extension-upload@v6.0.0
+        with:
+          file-path: d-party_${{ steps.version.outputs.new_version }}.zip
+          extension-id: ${{ secrets.EXTENSION_ID }}
+          client-id: ${{ secrets.CLIENT_ID }}
+          client-secret: ${{ secrets.CLIENT_SECRET }}
+          refresh-token: ${{ secrets.REFRESH_TOKEN }}
