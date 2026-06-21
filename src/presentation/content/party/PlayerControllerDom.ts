@@ -15,7 +15,7 @@ const click = (selector: string) =>
  * setting media properties — a faithful port of the player.js control helpers.
  */
 export class PlayerControllerDom implements PlayerController {
-  constructor(private readonly guard: ActionGuard) {}
+  constructor(private readonly guard: ActionGuard) { }
 
   getOption(): PlayerOption {
     const v = video();

@@ -120,7 +120,7 @@ export class SidebarStore {
  * so RoomSession stays unaware of React.
  */
 export class SidebarController implements SidebarView {
-  constructor(private readonly store: SidebarStore) {}
+  constructor(private readonly store: SidebarStore) { }
 
   setShareLink(roomUrl: string): void {
     this.store.setShareLink(roomUrl);

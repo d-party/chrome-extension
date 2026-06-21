@@ -308,11 +308,11 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
           onClick={() =>
             open(
               "https://twitter.com/intent/tweet?text=" +
-                encodeURIComponent(text) +
-                "&url=" +
-                encodeURIComponent(url) +
-                "&hashtags=" +
-                encodeURIComponent("dアニメストア,dパーティー"),
+              encodeURIComponent(text) +
+              "&url=" +
+              encodeURIComponent(url) +
+              "&hashtags=" +
+              encodeURIComponent("dアニメストア,dパーティー"),
             )
           }
         >
@@ -324,7 +324,7 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
           onClick={() =>
             open(
               "https://social-plugins.line.me/lineit/share?url=" +
-                encodeURIComponent(url),
+              encodeURIComponent(url),
             )
           }
         >
@@ -336,9 +336,9 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
           onClick={() =>
             open(
               "https://www.facebook.com/dialog/share?app_id=" +
-                FACEBOOK_APP_ID +
-                "&href=" +
-                encodeURIComponent(url),
+              FACEBOOK_APP_ID +
+              "&href=" +
+              encodeURIComponent(url),
             )
           }
         >
@@ -350,10 +350,10 @@ function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
           onClick={() =>
             open(
               "mailto:?&subject=" +
-                encodeURIComponent("dアニメストアで一緒にアニメを観ませんか？") +
-                "&body=" +
-                encodeURIComponent(text + "\n\n") +
-                encodeURIComponent(url + "\n"),
+              encodeURIComponent("dアニメストアで一緒にアニメを観ませんか？") +
+              "&body=" +
+              encodeURIComponent(text + "\n\n") +
+              encodeURIComponent(url + "\n"),
             )
           }
         >

@@ -20,7 +20,7 @@ export class PartyWebSocketClient {
   private socket: WebSocket | null = null;
   private outbox: string[] = [];
 
-  constructor(private readonly url: string) {}
+  constructor(private readonly url: string) { }
 
   connect(handlers: PartySocketHandlers): void {
     const socket = new WebSocket(this.url);
