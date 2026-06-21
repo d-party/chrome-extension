@@ -69,7 +69,7 @@ export class RoomSession {
   // -- connection lifecycle --------------------------------------------------
 
   /** Host a new room for the given part. */
-  createRoom(partId: string): void {
+  createRoom(partId: string, title = ""): void {
     this._inRoom = true;
     this.joined = false;
     this.resetDelayMs = 100;
@@ -79,6 +79,7 @@ export class RoomSession {
         action: "create",
         user_name: this.userName,
         part_id: partId,
+        title,
         request_id: now(),
       });
     });

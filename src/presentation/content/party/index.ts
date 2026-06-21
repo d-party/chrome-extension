@@ -49,7 +49,9 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
   onCreateRoom: () => {
     addControlButtons();
     bindPlayerEvents();
-    session.createRoom(getParam("partId") ?? "");
+    // 視聴中アニメのタイトルをページ DOM から取得してルーム作成時に一度だけ送る
+    // （OGP 表示用）。取得できない場合は空文字で、バックエンドは未指定でも受理する。
+    session.createRoom(getParam("partId") ?? "", shareTitle());
   },
   onLeave: () => {
     if (!session.inRoom) return;
