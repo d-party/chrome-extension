@@ -181,9 +181,7 @@ function bindPlayerEvents(): void {
   bindClick("prevThumbinner", () => {
     if (active()) session.sendVideoOperation("prev_thumbnail");
   });
-  bindClass("sync_button", () => {
-    if (active()) session.requestSync();
-  });
+  // sync_button / *_button (reactions) は React コンポーネント側で onClick を結線済み。
 
   bindClass("backArea", () => {
     if (session.inRoom && guard.available) {
@@ -215,12 +213,6 @@ function bindPlayerEvents(): void {
     };
   });
 
-  bindReaction("fav_button", "fav");
-  bindReaction("middle_finger_button", "middle_finger");
-  bindReaction("thumbs_button", "thumbs_up");
-  bindReaction("smile_button", "smile");
-  bindReaction("cry_button", "cry");
-
   window.addEventListener("keydown", (event) => {
     const playKeys = ["Space", "Enter", "NumpadEnter", "KeyK"];
     const skipKeys = [
@@ -249,18 +241,6 @@ function bindClass(cls: string, handler: () => void): void {
   if (el) el.onclick = handler;
 }
 
-function bindReaction(
-  buttonClass: string,
-  type: "fav" | "middle_finger" | "thumbs_up" | "smile" | "cry",
-): void {
-  bindClass(buttonClass, () => {
-    if (session.inRoom) {
-      reactions.play(type);
-      session.sendReaction(type);
-    }
-  });
-}
-
 function addControlButtons(): void {
   const space = document.getElementsByClassName("space")[0];
   if (!space) return;
@@ -268,6 +248,16 @@ function addControlButtons(): void {
     anchor: space,
     initialSettings: currentSettings,
     subscribe: (cb) => settingsRepo.onChange(cb),
+    handlers: {
+      onSync: () => {
+        if (guard.available && session.inRoom) session.requestSync();
+      },
+      onReaction: (type) => {
+        if (!session.inRoom) return;
+        reactions.play(type);
+        session.sendReaction(type);
+      },
+    },
   });
 }
 
