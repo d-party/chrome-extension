@@ -29,7 +29,7 @@
         "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
       ],
       "js": ["js/content-party.js"],
-      "css": ["css/library/knopf.min.css", "css/player.css", "css/style.css"]
+      "css": ["css/player.css", "css/style.css"]
     },
     {
       "matches": [

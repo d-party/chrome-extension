@@ -24,7 +24,7 @@ src/
   infrastructure/  外部I/O実装
     ws/              PartyWebSocketClient
     storage/         ChromeStorageSettingsRepository（chrome.storage.sync）
-    notifier/        AwnNotifier（awesome-notifications）
+    notifier/        ReactNotifier（Shadow DOM 内の shadcn 風トースト）
     api/             orval生成クライアント + customFetch mutator
     env.ts           接続先設定（旧 settings.js 定数）
   presentation/    DOM/UIアダプタ（注入対象ごとのエントリ）
