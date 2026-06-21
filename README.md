@@ -31,8 +31,14 @@ pnpm storybook        # UI コンポーネントカタログ
 ### 接続先の設定
 
 接続先は [`src/infrastructure/env.ts`](src/infrastructure/env.ts) に集約しています。
-既定は `wss://d-party.net`。ローカルバックエンドへ向ける場合は `BACKEND_HOST` を
+既定は `wss://d-party.net`（本番）。ローカルバックエンドへ向ける場合は `BACKEND_HOST` を
 `localhost/`、`BACKEND_PROTOCOL` を `http://`、`WEBSOCKET_PROTOCOL` を `ws://` に変更します。
+
+> monorepo のローカル開発スタック（ルートで `docker compose up`）は **dev モード**で
+> http / ws・`localhost` 配信、本番は https / wss・`d-party.net` 配信です（env の出し分けは
+> ルート README の「環境設定」を参照）。なお dアニメストア実ページから `localhost`
+> バックエンドへ繋ぐ際は Chrome の Private Network Access を無効化する必要があります
+> （手順は [d-party-Backend の README](https://github.com/d-party/d-party-Backend#chrome-拡張機能からローカルバックエンドへ接続する-pna-の無効化)）。
 
 ## ディレクトリ構成
 
