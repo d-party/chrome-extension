@@ -12,6 +12,7 @@ import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 import { getParam } from "../dom/utils";
 import { PlayerControllerDom } from "./PlayerControllerDom";
 import { mountSidebar } from "./react/mountSidebar";
+import { mountPlayerControls } from "./react/PlayerControls";
 import type { SidebarTab } from "./react/sidebarStore";
 import { ReactionViewReact } from "./ReactionViewReact";
 
@@ -261,29 +262,13 @@ function bindReaction(
 }
 
 function addControlButtons(): void {
-  $(".space").before(
-    "<div class='sync_button controll_button'><i class='fas fa-sync-alt buttonArea_icon'></i></div>",
-  );
-  $(".space").before(
-    "<div class='thumbs_button controll_button'><i class='fas fa-thumbs-up buttonArea_icon reaction_icon'></i></div>",
-  );
-  $(".space").before(
-    "<div class='fav_button controll_button'><i class='fas fa-heart buttonArea_icon reaction_icon'></i></div>",
-  );
-  $(".space").before(
-    "<div class='smile_button controll_button'><i class='fas fa-smile-beam buttonArea_icon reaction_icon'></i></div>",
-  );
-  $(".space").before(
-    "<div class='cry_button controll_button'><i class='fas fa-sad-cry buttonArea_icon reaction_icon'></i></div>",
-  );
-  $(".space").before(
-    "<div class='middle_finger_button controll_button'><i class='fas fa-hand-middle-finger buttonArea_icon reaction_icon'></i></div>",
-  );
-  if (currentSettings.hideReactionIcon) {
-    $(".reaction_icon").hide();
-  } else {
-    $(".reaction_icon").show();
-  }
+  const space = document.getElementsByClassName("space")[0];
+  if (!space) return;
+  mountPlayerControls({
+    anchor: space,
+    initialSettings: currentSettings,
+    subscribe: (cb) => settingsRepo.onChange(cb),
+  });
 }
 
 function nextPageAnotherTab(): void {
