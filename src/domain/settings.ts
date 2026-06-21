@@ -7,6 +7,7 @@
 export interface Settings {
   autoAnotherTab: boolean;
   autoUserNameDecision: boolean;
+  enablePictureInPicture: boolean;
   hideReaction: boolean;
   hideReactionIcon: boolean;
   selfNotification: boolean;
@@ -16,6 +17,7 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   autoAnotherTab: true,
   autoUserNameDecision: false,
+  enablePictureInPicture: true,
   hideReaction: false,
   hideReactionIcon: false,
   selfNotification: false,
@@ -26,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
 export const STORAGE_KEYS = {
   autoAnotherTab: "auto_another_tab",
   autoUserNameDecision: "auto_user_name_decision",
+  enablePictureInPicture: "enable_picture_in_picture",
   hideReaction: "hide_reaction",
   hideReactionIcon: "hide_reaction_icon",
   selfNotification: "self_notification",
