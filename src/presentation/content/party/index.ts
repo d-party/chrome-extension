@@ -1,5 +1,3 @@
-import $ from "jquery";
-
 import { ActionGuard } from "@/application/ActionGuard";
 import type { SettingsProvider } from "@/application/ports";
 import { RoomSession } from "@/application/RoomSession";
@@ -182,7 +180,8 @@ function bindPlayerEvents(): void {
     }
   });
   bindClass("prevButton", () => {
-    if (active() && !$("#prevPopupInReTop").hasClass("show")) {
+    const prevPopup = document.getElementById("prevPopupInReTop");
+    if (active() && !prevPopup?.classList.contains("show")) {
       session.sendVideoOperation("prev");
     }
   });

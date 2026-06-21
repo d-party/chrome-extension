@@ -1,5 +1,3 @@
-import $ from "jquery";
-
 import type { ActionGuard } from "@/application/ActionGuard";
 import type { PlayerController } from "@/application/ports";
 import type { PlayerOption, SyncOption } from "@/domain/protocol";
@@ -117,14 +115,22 @@ export class PlayerControllerDom implements PlayerController {
     // no-op on the read-only property — omitted (it would throw in module/strict mode).
   }
 
-  private prevButton(): void {
-    $("#prevPopupIn").removeClass("hide").addClass("show");
+  // prev / prev_thumbnail are wire-distinct operations but drive the same
+  // native control on the dアニメストア player: reveal the prev popup and click
+  // its thumbnail button. Kept as one helper to avoid drift between the two.
+  private showPrevThumbnail(): void {
+    const popup = document.getElementById("prevPopupIn");
+    popup?.classList.remove("hide");
+    popup?.classList.add("show");
     document.getElementById("prevThumbButton")?.click();
   }
 
+  private prevButton(): void {
+    this.showPrevThumbnail();
+  }
+
   private prevThumbnailButton(): void {
-    $("#prevPopupIn").removeClass("hide").addClass("show");
-    document.getElementById("prevThumbButton")?.click();
+    this.showPrevThumbnail();
   }
 
   private nextButton(): void {
