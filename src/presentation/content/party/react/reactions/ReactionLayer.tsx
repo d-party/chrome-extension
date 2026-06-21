@@ -17,7 +17,7 @@ const ANIMATIONS: Record<ReactionType, object> = {
   cry: cryData,
 };
 
-const SIZE_PX = 120;
+const SIZE_PX = 72;
 const RISE_MS = 1600;
 
 export interface ReactionEntry {
@@ -49,7 +49,7 @@ export function ReactionLayer({
       push: (type) => {
         seq += 1;
         const id = seq;
-        const start = 100 + randInt(-30, 30);
+        const start = 120 + randInt(-30, 30);
         setEntries((prev) => [
           ...prev,
           {
@@ -57,7 +57,7 @@ export function ReactionLayer({
             type,
             leftPct: randInt(5, 95),
             bottomStartPx: start,
-            bottomEndPx: start + 80,
+            bottomEndPx: start + 240,
           },
         ]);
       },
