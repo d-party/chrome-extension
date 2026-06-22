@@ -21,6 +21,13 @@ export const WEBSOCKET_PROTOCOL = IS_PRODUCTION ? "wss://" : "ws://";
 export const API_ENDPOINT = `${BACKEND_PROTOCOL}${BACKEND_HOST}api/v1/`;
 export const VERSION_CHECK_ENDPOINT = `${API_ENDPOINT}chrome-extension/version-check`;
 
+/**
+ * 公開サイト（ホームページ・使い方）の URL。バックエンドと同一ホストで配信されるため、
+ * dev では `http://localhost/`、本番では `https://d-party.net/` を指す。
+ */
+export const SITE_URL = `${BACKEND_PROTOCOL}${BACKEND_HOST}`;
+export const USAGE_URL = `${SITE_URL}usage`;
+
 export const ANIMESTORE_HOST = `${BACKEND_HOST}anime-store/`;
 export const WEBSOCKET_ENDPOINT = `${WEBSOCKET_PROTOCOL}${ANIMESTORE_HOST}party/`;
 export const ANIMESTORE_REDIRECT_ENDPOINT = `${BACKEND_PROTOCOL}${ANIMESTORE_HOST}lobby/`;
