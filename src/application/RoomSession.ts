@@ -15,6 +15,7 @@ import type {
   ReactionView,
   SettingsProvider,
   SidebarView,
+  StatsRecorder,
 } from "./ports";
 
 export interface RoomSessionDeps {
@@ -25,6 +26,7 @@ export interface RoomSessionDeps {
   notifier: Notifier;
   settings: SettingsProvider;
   guard: ActionGuard;
+  stats: StatsRecorder;
 }
 
 const SERVER_DISCONNECTED = "サーバーとの通信が終了";
@@ -54,6 +56,13 @@ export class RoomSession {
   // 手動 sync ボタン押下に対する sync_response のときだけトーストを出すためのフラグ。
   // join 直後の自動 sync 時はトーストを抑制したいので必要。
   private pendingManualSyncToast = false;
+  // ルームに接続（create/join 確定）してから、まだ統計へ加算していない区間の
+  // 開始時刻。切断時・チェックポイント時に「now - connectedAt」を加算する。
+  private connectedAt: number | null = null;
+  // 接続中、経過時間を定期的に統計へ書き出すタイマー。タブを閉じる/落ちると
+  // 切断ハンドラが走らないことがあるため、最大でも CHECKPOINT_MS 分しか取りこぼさない。
+  private connectionCheckpointTimer: number | null = null;
+  static CONNECTION_CHECKPOINT_MS = 60000;
 
   userId = "";
   roomId = "";
@@ -124,6 +133,7 @@ export class RoomSession {
           });
         }
         this.stopHeartbeat();
+        this.endConnectionTracking();
         this.isHost = false;
         this._inRoom = false;
         this.joined = false;
@@ -131,6 +141,34 @@ export class RoomSession {
         this.deps.sidebar.setConnectionStatus("failed");
       },
     });
+  }
+
+  // create/join 確定時に接続時間の計測を開始する。
+  private startConnectionTracking(): void {
+    this.connectedAt = now();
+    if (this.connectionCheckpointTimer !== null) return;
+    this.connectionCheckpointTimer = window.setInterval(() => {
+      this.checkpointConnection();
+    }, RoomSession.CONNECTION_CHECKPOINT_MS);
+  }
+
+  // 未加算区間を統計へ書き出し、計測の起点を現在時刻へ進める（接続は継続）。
+  private checkpointConnection(): void {
+    if (this.connectedAt === null) return;
+    const at = now();
+    this.deps.stats.connectionEnded(at - this.connectedAt);
+    this.connectedAt = at;
+  }
+
+  // 切断時に残りの経過時間を加算し、計測を完全に停止する。connectedAt が null
+  // （未接続/加算済み）のときは何もしないので、leave()→onClose の二重計上を防ぐ。
+  private endConnectionTracking(): void {
+    this.checkpointConnection();
+    this.connectedAt = null;
+    if (this.connectionCheckpointTimer !== null) {
+      window.clearInterval(this.connectionCheckpointTimer);
+      this.connectionCheckpointTimer = null;
+    }
   }
 
   // -- outgoing intents (called by DOM event handlers) -----------------------
@@ -183,12 +221,14 @@ export class RoomSession {
 
   sendReaction(reactionType: ReactionType): void {
     this.send({ action: "reaction", reaction_type: reactionType, request_id: now() });
+    this.deps.stats.reactionSent(reactionType);
   }
 
   /** Leave the room (caller is responsible for any UI teardown). */
   leave(): void {
     this.send({ action: "leave", user_name: this.userName, request_id: now() });
     this.stopHeartbeat();
+    this.endConnectionTracking();
     this.isHost = false;
     this._inRoom = false;
   }
@@ -251,6 +291,8 @@ export class RoomSession {
         this.roomId = message.room_id;
         this.joined = true;
         this.isHost = true;
+        this.startConnectionTracking();
+        this.deps.stats.roomCreated();
         this.startHeartbeat();
         sidebar.setSelfUserId(this.userId);
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
@@ -268,6 +310,8 @@ export class RoomSession {
         this.userId = message.user.user_id;
         this.roomId = message.room_id;
         this.joined = true;
+        this.startConnectionTracking();
+        this.deps.stats.roomJoined();
         sidebar.setSelfUserId(this.userId);
         sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
         sidebar.setJoined(true);
