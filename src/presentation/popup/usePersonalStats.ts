@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useMountedState } from "react-use";
 
 import { emptyStats, type PersonalStats } from "@/domain/personalStats";
 import { ChromePersonalStatsRepository } from "@/infrastructure/storage/ChromePersonalStatsRepository";
@@ -22,22 +23,18 @@ export interface UsePersonalStats {
 export function usePersonalStats(): UsePersonalStats {
   const [stats, setStats] = useState<PersonalStats>(emptyStats);
   const [loaded, setLoaded] = useState(false);
+  const isMounted = useMountedState();
 
   useEffect(() => {
-    let active = true;
     void repo.getAll().then((value) => {
-      if (!active) return;
+      if (!isMounted()) return;
       setStats(value);
       setLoaded(true);
     });
-    const unsubscribe = repo.onChange((value) => {
-      if (active) setStats(value);
+    return repo.onChange((value) => {
+      if (isMounted()) setStats(value);
     });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+  }, [isMounted]);
 
   const reset = useCallback(async () => {
     setStats(emptyStats());

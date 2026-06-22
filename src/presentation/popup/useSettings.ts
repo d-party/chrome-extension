@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { useMountedState } from "react-use";
 
 import { DEFAULT_SETTINGS, type Settings } from "@/domain/settings";
 import { ChromeStorageSettingsRepository } from "@/infrastructure/storage/ChromeStorageSettingsRepository";
@@ -24,22 +25,18 @@ export interface UseSettings {
 export function useSettings(): UseSettings {
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [loaded, setLoaded] = useState(false);
+  const isMounted = useMountedState();
 
   useEffect(() => {
-    let active = true;
     void repo.getAll().then((value) => {
-      if (!active) return;
+      if (!isMounted()) return;
       setSettings(value);
       setLoaded(true);
     });
-    const unsubscribe = repo.onChange((value) => {
-      if (active) setSettings(value);
+    return repo.onChange((value) => {
+      if (isMounted()) setSettings(value);
     });
-    return () => {
-      active = false;
-      unsubscribe();
-    };
-  }, []);
+  }, [isMounted]);
 
   const update = useCallback(
     async <K extends keyof Settings>(key: K, value: Settings[K]) => {
