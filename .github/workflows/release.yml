@@ -1,16 +1,16 @@
 name: release
 
+# d-party モノレポ root の release ワークフローから統一バージョンを受け取って起動される。
+# 旧 bump_type 方式は廃止し、version を外部入力で受け取る。
+# build + Chrome Web Store への公開は従来どおりここで行う。
+
 on:
   workflow_dispatch:
     inputs:
-      bump_type:
-        description: "Version bump type"
+      version:
+        description: "Release version (X.Y.Z)"
         required: true
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
+        type: string
       release_note:
         description: "Release notes (optional)"
         required: false
@@ -43,30 +43,15 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Bump version
+      - name: Set version
         id: version
+        env:
+          VERSION_NUM: ${{ inputs.version }}
         run: |
-          NEW_VERSION=$(node -e "
-            const fs = require('fs');
-            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-            const [major, minor, patch] = pkg.version.split('.').map(Number);
-            const bump = '${{ github.event.inputs.bump_type }}';
-            if (bump === 'major') pkg.version = (major+1)+'.0.0';
-            else if (bump === 'minor') pkg.version = major+'.'+(minor+1)+'.0';
-            else pkg.version = major+'.'+minor+'.'+(patch+1);
-            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
-            console.log('v' + pkg.version);
-          ")
-          VERSION_NUM=${NEW_VERSION#v}
-          echo "new_version=${NEW_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "new_version=v${VERSION_NUM}" >> "$GITHUB_OUTPUT"
           echo "version_num=${VERSION_NUM}" >> "$GITHUB_OUTPUT"
-          export VERSION_NUM
-          node << 'EOF'
-          const fs = require('fs');
-          const m = JSON.parse(fs.readFileSync('public/manifest.json', 'utf8'));
-          m.version = process.env.VERSION_NUM;
-          fs.writeFileSync('public/manifest.json', JSON.stringify(m, null, 2) + '\n');
-          EOF
+          node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));p.version=process.env.VERSION_NUM;fs.writeFileSync('package.json',JSON.stringify(p,null,2)+'\n');"
+          node -e "const fs=require('fs');const m=JSON.parse(fs.readFileSync('public/manifest.json','utf8'));m.version=process.env.VERSION_NUM;fs.writeFileSync('public/manifest.json',JSON.stringify(m,null,2)+'\n');"
 
       - name: Commit and push version bump
         run: |
@@ -92,7 +77,7 @@ jobs:
         with:
           tag_name: ${{ steps.version.outputs.new_version }}
           name: Release ${{ steps.version.outputs.new_version }}
-          body: ${{ github.event.inputs.release_note }}
+          body: ${{ inputs.release_note }}
           files: d-party_${{ steps.version.outputs.new_version }}.zip
           generate_release_notes: true
           target_commitish: main
@@ -105,5 +90,5 @@ jobs:
           client-id: ${{ secrets.CLIENT_ID }}
           client-secret: ${{ secrets.CLIENT_SECRET }}
           refresh-token: ${{ secrets.REFRESH_TOKEN }}
-          # 既定はアップロードのみ。実行時に publish=true を選んだときだけ公開申請する。
+          # 既定はアップロードのみ。root から publish=true が渡されたときだけ公開申請する。
           publish: ${{ inputs.publish }}
