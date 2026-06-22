@@ -151,7 +151,7 @@ function Panel({
             <TabsContent value="share" className="h-full">
               <SharePanel state={state} />
             </TabsContent>
-            <TabsContent value="history">
+            <TabsContent value="history" className="h-full">
               <HistoryPanel state={state} />
             </TabsContent>
             <TabsContent value="users">

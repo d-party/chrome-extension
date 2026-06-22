@@ -1,6 +1,8 @@
 import {
   ArrowDownLeft,
   ArrowUpRight,
+  ChevronLeft,
+  ChevronRight,
   Crown,
   FastForward,
   Gauge,
@@ -15,7 +17,7 @@ import {
   UserMinus,
   UserPlus,
 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type { HistoryIcon } from "@/domain/history";
 import { cn } from "@/lib/utils";
@@ -42,9 +44,14 @@ const HISTORY_ICONS: Record<HistoryIcon, LucideIcon> = {
 const ALL_FILTER = "__all__";
 const SELF_FILTER = "__self__";
 
+/** Vertical gap between rows (`gap-0.5` = 2px), needed for the fit calculation. */
+const ROW_GAP_PX = 2;
+
 export function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Element {
   const [filter, setFilter] = useState<string>(ALL_FILTER);
-  const endRef = useRef<HTMLDivElement>(null);
+  const [page, setPage] = useState(0);
+  const [perPage, setPerPage] = useState(8);
+  const listRef = useRef<HTMLDivElement>(null);
 
   // 履歴に登場した「相手の参加者」を絞り込み候補として集める。
   const actors = useMemo(() => {
@@ -64,19 +71,45 @@ export function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Elem
     (filter === SELF_FILTER ? hasSent : actors.includes(filter));
   const activeFilter = filterValid ? filter : ALL_FILTER;
 
+  // 新しい履歴が上に来るよう降順で並べる。
   const visible = useMemo(
     () =>
-      state.history.filter((entry) => {
-        if (activeFilter === ALL_FILTER) return true;
-        if (activeFilter === SELF_FILTER) return entry.direction === "sent";
-        return entry.user === activeFilter;
-      }),
+      state.history
+        .filter((entry) => {
+          if (activeFilter === ALL_FILTER) return true;
+          if (activeFilter === SELF_FILTER) return entry.direction === "sent";
+          return entry.user === activeFilter;
+        })
+        .reverse(),
     [state.history, activeFilter],
   );
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ block: "end" });
-  }, [visible.length]);
+  // サイドバーの高さに 1 ページ分の行数を合わせ、スクロールを出さない。
+  const recompute = useCallback(() => {
+    const container = listRef.current;
+    if (!container) return;
+    const containerHeight = container.clientHeight;
+    const row = container.querySelector("li");
+    if (!row || containerHeight <= 0) return;
+    const rowHeight = row.getBoundingClientRect().height;
+    if (rowHeight <= 0) return;
+    const fit = Math.floor((containerHeight + ROW_GAP_PX) / (rowHeight + ROW_GAP_PX));
+    setPerPage(Math.max(1, fit));
+  }, []);
+
+  useLayoutEffect(() => {
+    recompute();
+    const container = listRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => recompute());
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [recompute, visible.length]);
+
+  const totalPages = Math.max(1, Math.ceil(visible.length / perPage));
+  const currentPage = Math.min(page, totalPages - 1);
+  const pageStart = currentPage * perPage;
+  const pageItems = visible.slice(pageStart, pageStart + perPage);
 
   if (state.history.length === 0) {
     return <EmptyHint text="まだ履歴はありません" />;
@@ -97,13 +130,59 @@ export function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Elem
       {visible.length === 0 ? (
         <EmptyHint text="条件に一致する履歴はありません" />
       ) : (
-        <ul className="flex flex-col gap-0.5 px-0.5">
-          {visible.map((entry) => (
-            <HistoryRow key={entry.id} entry={entry} />
-          ))}
-          <div ref={endRef} />
-        </ul>
+        <>
+          <div ref={listRef} className="min-h-0 flex-1 overflow-hidden">
+            <ul className="flex flex-col gap-0.5 px-0.5">
+              {pageItems.map((entry) => (
+                <HistoryRow key={entry.id} entry={entry} />
+              ))}
+            </ul>
+          </div>
+          {totalPages > 1 && (
+            <HistoryPagination
+              page={currentPage}
+              totalPages={totalPages}
+              onChange={setPage}
+            />
+          )}
+        </>
       )}
+    </div>
+  );
+}
+
+function HistoryPagination({
+  page,
+  totalPages,
+  onChange,
+}: {
+  page: number;
+  totalPages: number;
+  onChange: (page: number) => void;
+}): React.JSX.Element {
+  return (
+    <div className="mt-1 flex shrink-0 items-center justify-center gap-3 px-0.5 pt-1.5">
+      <button
+        type="button"
+        onClick={() => onChange(Math.max(0, page - 1))}
+        disabled={page <= 0}
+        aria-label="新しい履歴へ"
+        className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+      >
+        <ChevronLeft className="size-4" aria-hidden />
+      </button>
+      <span className="font-mono text-[11px] tabular-nums text-muted-foreground">
+        {page + 1} / {totalPages}
+      </span>
+      <button
+        type="button"
+        onClick={() => onChange(Math.min(totalPages - 1, page + 1))}
+        disabled={page >= totalPages - 1}
+        aria-label="古い履歴へ"
+        className="flex size-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted disabled:pointer-events-none disabled:opacity-40"
+      >
+        <ChevronRight className="size-4" aria-hidden />
+      </button>
     </div>
   );
 }
