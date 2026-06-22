@@ -1,4 +1,5 @@
 import {
+  BarChart3,
   Bell,
   Check,
   ChevronDown,
@@ -8,6 +9,7 @@ import {
   MonitorPlay,
   Pencil,
   PictureInPicture2,
+  Settings as SettingsIcon,
   SlidersHorizontal,
   Smile,
   User,
@@ -19,8 +21,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Settings } from "@/domain/settings";
 
+import { PersonalStatsPanel } from "./PersonalStatsPanel";
 import { useSettings } from "./useSettings";
 
 type ToggleKey = Exclude<keyof Settings, "userName">;
@@ -137,7 +141,7 @@ export function PopupApp(): React.JSX.Element {
   );
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="flex min-h-[480px] flex-col bg-background text-foreground">
       {/* Header */}
       <header className="border-b-2 border-red-600 bg-neutral-950 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
@@ -151,85 +155,109 @@ export function PopupApp(): React.JSX.Element {
         </div>
       </header>
 
-      <main className="space-y-3 p-4">
-        {/* User settings */}
-        <section className="rounded-xl border bg-card p-4 shadow-sm">
-          <div className="mb-3 flex items-center gap-2">
-            <User className="size-4 text-red-600" aria-hidden />
-            <h2 className="text-sm font-semibold">ユーザー設定</h2>
-          </div>
-          {editing ? (
-            <form className="flex flex-col gap-1.5" onSubmit={submitName}>
-              <Label htmlFor="user-name" className="text-xs text-muted-foreground">
-                表示名（15文字以下）
-              </Label>
-              <div className="flex items-center gap-2">
-                <Input
-                  ref={inputRef}
-                  id="user-name"
-                  className="flex-1"
-                  maxLength={15}
-                  placeholder="あなたの名前"
-                  value={draftName}
-                  onChange={(e) => setDraftName(e.target.value)}
-                />
-                <Button
-                  type="submit"
-                  size="icon"
-                  variant="ghost"
-                  className="text-red-600 hover:text-red-600"
-                  aria-label="表示名を確定"
-                >
-                  <Check className="size-5" aria-hidden />
-                </Button>
+      <Tabs defaultValue="settings" className="gap-0">
+        <TabsList className="mx-4 mt-3 w-auto">
+          <TabsTrigger value="settings">
+            <SettingsIcon className="size-3.5" aria-hidden />
+            設定
+          </TabsTrigger>
+          <TabsTrigger value="stats">
+            <BarChart3 className="size-3.5" aria-hidden />
+            統計
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="settings">
+          <main className="space-y-3 p-4">
+            {/* User settings */}
+            <section className="rounded-xl border bg-card p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <User className="size-4 text-red-600" aria-hidden />
+                <h2 className="text-sm font-semibold">ユーザー設定</h2>
               </div>
-            </form>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              <span className="text-xs text-muted-foreground">表示名</span>
-              <div className="flex items-center gap-2">
-                <p className="flex-1 truncate text-sm font-medium">
-                  {settings.userName || (
-                    <span className="text-muted-foreground">未設定</span>
-                  )}
-                </p>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  className="text-muted-foreground hover:text-foreground"
-                  onClick={startEditing}
-                  aria-label={saved ? "保存しました" : "表示名を編集"}
-                >
-                  {saved ? (
-                    <Check className="size-5 text-red-600" aria-hidden />
-                  ) : (
-                    <Pencil className="size-5" aria-hidden />
-                  )}
-                </Button>
-              </div>
-            </div>
-          )}
-        </section>
+              {editing ? (
+                <form className="flex flex-col gap-1.5" onSubmit={submitName}>
+                  <Label
+                    htmlFor="user-name"
+                    className="text-xs text-muted-foreground"
+                  >
+                    表示名（15文字以下）
+                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      ref={inputRef}
+                      id="user-name"
+                      className="flex-1"
+                      maxLength={15}
+                      placeholder="あなたの名前"
+                      value={draftName}
+                      onChange={(e) => setDraftName(e.target.value)}
+                    />
+                    <Button
+                      type="submit"
+                      size="icon"
+                      variant="ghost"
+                      className="text-red-600 hover:text-red-600"
+                      aria-label="表示名を確定"
+                    >
+                      <Check className="size-5" aria-hidden />
+                    </Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs text-muted-foreground">表示名</span>
+                  <div className="flex items-center gap-2">
+                    <p className="flex-1 truncate text-sm font-medium">
+                      {settings.userName || (
+                        <span className="text-muted-foreground">未設定</span>
+                      )}
+                    </p>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="text-muted-foreground hover:text-foreground"
+                      onClick={startEditing}
+                      aria-label={saved ? "保存しました" : "表示名を編集"}
+                    >
+                      {saved ? (
+                        <Check className="size-5 text-red-600" aria-hidden />
+                      ) : (
+                        <Pencil className="size-5" aria-hidden />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </section>
 
-        {/* Watch-party settings */}
-        <ToggleSection
-          title="同時視聴設定"
-          icon={MonitorPlay}
-          toggles={SYNC_TOGGLES}
-          renderToggle={renderToggle}
-        />
+            {/* Watch-party settings */}
+            <ToggleSection
+              title="同時視聴設定"
+              icon={MonitorPlay}
+              toggles={SYNC_TOGGLES}
+              renderToggle={renderToggle}
+            />
 
-        {/* Utility settings (kept last) */}
-        <ToggleSection
-          title="ユーティリティ設定"
-          icon={SlidersHorizontal}
-          toggles={UTILITY_TOGGLES}
-          renderToggle={renderToggle}
-        />
-      </main>
+            {/* Utility settings (kept last) */}
+            <ToggleSection
+              title="ユーティリティ設定"
+              icon={SlidersHorizontal}
+              toggles={UTILITY_TOGGLES}
+              renderToggle={renderToggle}
+            />
+          </main>
+        </TabsContent>
 
-      <footer className="px-4 pb-3 text-center text-[11px] text-muted-foreground">
+        <TabsContent value="stats">
+          <main className="p-4">
+            <PersonalStatsPanel />
+          </main>
+        </TabsContent>
+      </Tabs>
+
+      <footer className="mt-auto px-4 pb-3 pt-3 text-center text-[11px] text-muted-foreground">
         v{appVersion()} · powered by U-Not
       </footer>
     </div>
@@ -269,7 +297,9 @@ function ToggleSection({
           aria-hidden
         />
       </button>
-      {open && <div className="mt-1 space-y-0.5">{toggles.map(renderToggle)}</div>}
+      {open && (
+        <div className="mt-1 space-y-0.5">{toggles.map(renderToggle)}</div>
+      )}
     </section>
   );
 }

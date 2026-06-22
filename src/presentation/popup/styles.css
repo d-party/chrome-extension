@@ -92,4 +92,7 @@ body {
 
 #root {
   width: 360px;
+  /* Keep the popup comfortably tall by default so switching between the
+     設定 / 統計 tabs doesn't make the window jump in height. */
+  min-height: 480px;
 }

@@ -49,3 +49,16 @@ export interface ReactionView {
 export interface SettingsProvider {
   current(): Settings;
 }
+
+/**
+ * Records personal usage statistics. Calls are fire-and-forget from the
+ * session's perspective; the implementation persists them asynchronously and
+ * independently of the backend.
+ */
+export interface StatsRecorder {
+  roomCreated(): void;
+  roomJoined(): void;
+  reactionSent(type: ReactionType): void;
+  /** Report a finished connection so its duration can be accumulated. */
+  connectionEnded(durationMs: number): void;
+}

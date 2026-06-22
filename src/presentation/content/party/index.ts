@@ -1,8 +1,10 @@
 import { ActionGuard } from "@/application/ActionGuard";
-import type { SettingsProvider } from "@/application/ports";
+import type { SettingsProvider, StatsRecorder } from "@/application/ports";
 import { RoomSession } from "@/application/RoomSession";
 import { DEFAULT_SETTINGS, type Settings } from "@/domain/settings";
+import type { ReactionType } from "@/domain/reactions";
 import { ReactNotifier } from "@/infrastructure/notifier/ReactNotifier";
+import { ChromePersonalStatsRepository } from "@/infrastructure/storage/ChromePersonalStatsRepository";
 import { ChromeStorageSettingsRepository } from "@/infrastructure/storage/ChromeStorageSettingsRepository";
 import { WEBSOCKET_ENDPOINT } from "@/infrastructure/env";
 import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
@@ -31,6 +33,16 @@ let currentSettings: Settings = DEFAULT_SETTINGS;
 const settings: SettingsProvider = { current: () => currentSettings };
 void settingsRepo.getAll().then((s) => (currentSettings = s));
 settingsRepo.onChange((s) => (currentSettings = s));
+
+// --- personal stats (client-only, independent of the backend) ---------------
+const statsRepo = new ChromePersonalStatsRepository();
+const stats: StatsRecorder = {
+  roomCreated: () => void statsRepo.incrementRoomsCreated(),
+  roomJoined: () => void statsRepo.incrementRoomsJoined(),
+  reactionSent: (type: ReactionType) => void statsRepo.incrementReaction(type),
+  connectionEnded: (durationMs: number) =>
+    void statsRepo.addConnectionMs(durationMs),
+};
 
 // --- composition root -------------------------------------------------------
 const guard = new ActionGuard();
@@ -74,6 +86,7 @@ const session = new RoomSession({
   notifier,
   settings,
   guard,
+  stats,
 });
 
 sidebarStore.setMode(mode);
