@@ -107,9 +107,12 @@ export function PersonalStatsPanel(): React.JSX.Element {
               const meta = REACTION_META[type];
               return (
                 <li key={type} className="flex items-center gap-2">
-                  <span className="flex w-20 shrink-0 items-center gap-1.5 text-xs text-muted-foreground">
-                    <span aria-hidden>{meta.emoji}</span>
-                    <span className="truncate">{meta.label}</span>
+                  <span
+                    className="shrink-0 text-sm"
+                    aria-label={meta.label}
+                    title={meta.label}
+                  >
+                    {meta.emoji}
                   </span>
                   <span className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                     <span
@@ -130,7 +133,7 @@ export function PersonalStatsPanel(): React.JSX.Element {
       {/* Reset + measuring-since footnote */}
       <div className="flex items-center justify-between gap-2 px-1">
         <p className="text-[11px] text-muted-foreground">
-          {since ? `${since} から計測` : "ローカルにのみ保存されます"}
+          {since ? `${since} から計測` : "ブラウザに保存されます"}
         </p>
         {confirming ? (
           <span className="flex items-center gap-1">

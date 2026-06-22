@@ -141,7 +141,7 @@ export function PopupApp(): React.JSX.Element {
   );
 
   return (
-    <div className="bg-background text-foreground">
+    <div className="flex min-h-[480px] flex-col bg-background text-foreground">
       {/* Header */}
       <header className="border-b-2 border-red-600 bg-neutral-950 px-5 py-4 text-white">
         <div className="flex items-center gap-3">
@@ -257,7 +257,7 @@ export function PopupApp(): React.JSX.Element {
         </TabsContent>
       </Tabs>
 
-      <footer className="px-4 pb-3 text-center text-[11px] text-muted-foreground">
+      <footer className="mt-auto px-4 pb-3 pt-3 text-center text-[11px] text-muted-foreground">
         v{appVersion()} · powered by U-Not
       </footer>
     </div>
