@@ -1,0 +1,37 @@
+name: License Check
+
+on: [push, pull_request]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: license-check-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  license-check:
+    name: Check dependency licenses
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Allow-list lives in license-whitelist-node.txt (one SPDX id per line).
+      # Fails the build if any production dependency reports a license not on the list,
+      # blocking GPL/AGPL/SSPL contamination. See that file for how to extend it.
+      - name: Check licenses
+        run: pnpm run license:check

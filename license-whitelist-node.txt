@@ -1,0 +1,29 @@
+# License whitelist for chrome-extension (Node) dependencies.
+# One SPDX license identifier per line. Blank lines and lines starting with # are ignored.
+# Consumed by the `license:check` npm script and the License Check CI workflow.
+#
+# Policy: permissive + weak copyleft only. Never add GPL / AGPL / SSPL here —
+# replace such a dependency with a permissively licensed alternative instead.
+
+# Permissive
+MIT
+Apache-2.0
+BSD-2-Clause
+BSD-3-Clause
+ISC
+0BSD
+
+# Creative Commons / public domain (documentation / data assets)
+CC0-1.0
+CC-BY-4.0
+CC-BY-3.0
+Public Domain
+
+# Other permissive
+Unlicense
+BlueOak-1.0.0
+Python-2.0
+MPL-2.0
+
+# Weak copyleft (safe for SaaS library use — LGPL does not require app source disclosure)
+LGPL-3.0-or-later
