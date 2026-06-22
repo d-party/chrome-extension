@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rspack build",
+    "build:prod": "D_PARTY_ENV=production rspack build",
     "dev": "rspack build --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

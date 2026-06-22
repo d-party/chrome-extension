@@ -3,16 +3,20 @@
  *
  * Port of the old `js/common/settings.js` constants.
  *
- * Currently set to the **local development** backend (the docker-compose stack
- * served via nginx on localhost). For production, switch back to:
- *   BACKEND_HOST = "d-party.net/";
- *   BACKEND_PROTOCOL = "https://";
- *   WEBSOCKET_PROTOCOL = "wss://";
+ * 接続先はビルド時の環境変数 `D_PARTY_ENV` で切り替える。`rspack.DefinePlugin`
+ * が `process.env.D_PARTY_ENV` をビルド時にリテラルへ置換する（rspack.config.ts 参照）。
+ *
+ *   既定（未指定）      : 開発用ローカルバックエンド（localhost / http / ws）
+ *   D_PARTY_ENV=production: 本番（d-party.net / https / wss）
+ *
+ * 本番ビルドは `D_PARTY_ENV=production pnpm build`（CI のリリースワークフローが指定）。
  */
 
-export const BACKEND_HOST = "localhost/";
-export const BACKEND_PROTOCOL = "http://";
-export const WEBSOCKET_PROTOCOL = "ws://";
+const IS_PRODUCTION = process.env.D_PARTY_ENV === "production";
+
+export const BACKEND_HOST = IS_PRODUCTION ? "d-party.net/" : "localhost/";
+export const BACKEND_PROTOCOL = IS_PRODUCTION ? "https://" : "http://";
+export const WEBSOCKET_PROTOCOL = IS_PRODUCTION ? "wss://" : "ws://";
 
 export const API_ENDPOINT = `${BACKEND_PROTOCOL}${BACKEND_HOST}api/v1/`;
 export const VERSION_CHECK_ENDPOINT = `${API_ENDPOINT}chrome-extension/version-check`;
