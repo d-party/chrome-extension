@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "rspack build",
+    "build:prod": "D_PARTY_ENV=production rspack build",
     "dev": "rspack build --watch",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
@@ -24,7 +25,6 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "framer-motion": "^12.40.0",
-    "jquery": "^4.0.0",
     "lottie-react": "^2.4.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.7",
@@ -41,7 +41,6 @@
     "@storybook/react-vite": "^10.4.6",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/chrome": "^0.1.43",
-    "@types/jquery": "^4.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@typescript-eslint/eslint-plugin": "^8.61.1",

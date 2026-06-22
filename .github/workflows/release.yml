@@ -80,7 +80,7 @@ jobs:
         run: pnpm api:generate
 
       - name: Build extension
-        run: pnpm build
+        run: pnpm build:prod
 
       - name: Package extension
         run: |

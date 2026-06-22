@@ -63,6 +63,14 @@ const config: Configuration = {
     runtimeChunk: false,
   },
   plugins: [
+    // Inline the build-time backend target so `src/infrastructure/env.ts` can
+    // branch on it. Default is the local dev backend; release builds pass
+    // `D_PARTY_ENV=production` to target d-party.net (see .github release.yml).
+    new rspack.DefinePlugin({
+      "process.env.D_PARTY_ENV": JSON.stringify(
+        process.env.D_PARTY_ENV ?? "development",
+      ),
+    }),
     new rspack.HtmlRspackPlugin({
       template: "public/popup.html",
       filename: "popup.html",
