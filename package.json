@@ -14,7 +14,8 @@
     "format": "prettier --write .",
     "api:generate": "orval --config orval.config.ts",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "license:check": "pnpm dlx license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages --onlyAllow \"$(grep -v '^[[:space:]]*#' license-whitelist-node.txt | grep -v '^[[:space:]]*$' | paste -sd ';')\""
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.1",
