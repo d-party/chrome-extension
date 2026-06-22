@@ -28,6 +28,13 @@ pnpm storybook        # UI コンポーネントカタログ
 `pnpm build` 後、`chrome://extensions` →「パッケージ化されていない拡張機能を読み込む」で
 `dist/` を選択します。
 
+### Storybook
+
+UI コンポーネントのカタログを Storybook で公開しています（`main` へのマージ時に GitHub Pages へ自動デプロイ）。
+
+- 公開先: <https://d-party.github.io/chrome-extension/>
+- ローカル: `pnpm storybook`（http://localhost:6006）
+
 ### 接続先の設定
 
 接続先は [`src/infrastructure/env.ts`](src/infrastructure/env.ts) に集約しています。
