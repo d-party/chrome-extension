@@ -7,14 +7,19 @@ import { REACTION_TYPES, REACTION_META } from "@/domain/reactions";
 
 import { usePersonalStats } from "./usePersonalStats";
 
-/** Format a millisecond duration as a compact Japanese "Xh Ym" string. */
+/**
+ * Format a millisecond duration as a compact Japanese string.
+ *
+ * Under an hour it reads "X分" (or "1分未満"); once it reaches an hour it shows
+ * whole hours only ("X時間"), dropping the trailing minutes. Hours never roll
+ * over into days — the count keeps accumulating as hours.
+ */
 function formatDuration(ms: number): string {
   const totalMinutes = Math.floor(ms / 60000);
   if (totalMinutes < 1) return "1分未満";
   const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  if (hours === 0) return `${minutes}分`;
-  return `${hours}時間${minutes}分`;
+  if (hours === 0) return `${totalMinutes}分`;
+  return `${hours}時間`;
 }
 
 /** Format the "measuring since" epoch as a YYYY/M/D date. */
