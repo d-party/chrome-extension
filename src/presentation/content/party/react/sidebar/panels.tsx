@@ -205,7 +205,7 @@ function HoldToDeleteButton({
       onPointerLeave={cancelHold}
       onPointerCancel={cancelHold}
       aria-label="ルームを削除（3秒長押し）"
-      className="relative h-10 w-full select-none overflow-hidden rounded-md border border-destructive/60 bg-destructive/10 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/15"
+      className="relative h-10 w-full cursor-pointer select-none overflow-hidden rounded-md border border-destructive/60 bg-destructive/10 px-3 text-sm font-semibold text-destructive transition-all duration-150 ease-out hover:bg-destructive/15 hover:-translate-y-0.5 hover:shadow-sm active:translate-y-0 active:shadow-none"
     >
       <span
         className="absolute inset-y-0 left-0 bg-destructive/30"
