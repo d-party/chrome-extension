@@ -74,8 +74,8 @@ const SYNC_TOGGLES: Toggle[] = [
 const UTILITY_TOGGLES: Toggle[] = [
   {
     key: "autoAnotherTab",
-    label: "別タブで自動再生",
-    description: "動画を新しいタブで開く",
+    label: "動画は全て別タブで開く",
+    description: "再生を常に新しいタブで開く",
     icon: ExternalLink,
   },
   {

@@ -40,10 +40,12 @@
     },
     {
       "matches": [
-        "https://animestore.docomo.ne.jp/animestore/ci_pc?*",
-        "https://animestore.docomo.ne.jp/animestore/tp_pc*",
-        "https://anime.dmkt-sp.jp/animestore/ci_pc?*",
-        "https://anime.dmkt-sp.jp/animestore/tp_pc*"
+        "https://animestore.docomo.ne.jp/animestore/*",
+        "https://anime.dmkt-sp.jp/animestore/*"
+      ],
+      "exclude_matches": [
+        "https://animestore.docomo.ne.jp/animestore/sc_d_pc?*",
+        "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
       ],
       "js": [
         "js/content-store.js"
