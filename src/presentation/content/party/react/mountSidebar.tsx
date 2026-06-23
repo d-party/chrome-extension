@@ -8,6 +8,7 @@ import { SidebarController, SidebarStore, type SidebarTab } from "./sidebarStore
 export interface SidebarHandlers {
   onCreateRoom: () => void;
   onLeave: () => void;
+  onDeleteRoom: () => void;
   onTabChange?: (tab: SidebarTab) => void;
 }
 
@@ -103,6 +104,7 @@ export function mountSidebar(handlers: SidebarHandlers): MountedSidebar {
         store={store}
         onCreateRoom={handlers.onCreateRoom}
         onLeave={handlers.onLeave}
+        onDeleteRoom={handlers.onDeleteRoom}
         onTabChange={handlers.onTabChange}
       />
     </PortalContainerContext.Provider>,

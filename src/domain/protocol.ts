@@ -13,6 +13,11 @@ import type { ReactionType } from "./reactions";
 export interface User {
   user_id: string;
   user_name: string;
+  /**
+   * ルームのホスト（オーナー）かどうか。`user_list` で配信される。
+   * 旧バックエンド互換のため任意（未指定なら非ホスト扱い）。
+   */
+  is_host?: boolean;
 }
 
 /** Player state as reported by the extension (sent to the server). */
@@ -97,6 +102,12 @@ export interface UserListRequestMessage {
   request_id: number;
 }
 
+/** ホスト（オーナー）がルームを削除する要求。ホスト以外が送っても無視される。 */
+export interface DeleteRoomMessage {
+  action: "delete_room";
+  request_id: number;
+}
+
 export interface ReactionMessage {
   action: "reaction";
   reaction_type: ReactionType;
@@ -112,6 +123,7 @@ export type OutgoingMessage =
   | OperationNotificationMessage
   | LeaveMessage
   | UserListRequestMessage
+  | DeleteRoomMessage
   | ReactionMessage;
 
 // ---------------------------------------------------------------------------

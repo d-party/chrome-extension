@@ -1,8 +1,35 @@
-import { LogOut, PartyPopper, UserRound } from "lucide-react";
+import { Crown, LogOut, PartyPopper, Trash2, UserRound } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 import type { SidebarState } from "../sidebarStore";
+
+/** ルーム削除を確定するまでの長押し時間（誤操作防止）。 */
+const DELETE_HOLD_MS = 3000;
+
+/**
+ * オーナー（ホスト）を示す王冠バッジ。文字は持たず、ホバー（フォーカス）時に
+ * tooltip で「オーナー」と表示する。参加者リストとオーナー専用操作の見出しで使う。
+ */
+function OwnerBadge(): React.JSX.Element {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-amber-400 text-amber-950">
+          <Crown className="size-3" aria-hidden />
+          <span className="sr-only">オーナー</span>
+        </span>
+      </TooltipTrigger>
+      <TooltipContent>オーナー</TooltipContent>
+    </Tooltip>
+  );
+}
 
 export function CreatePanel({
   onCreateRoom,
@@ -35,6 +62,7 @@ export function UsersPanel({ state }: { state: SidebarState }): React.JSX.Elemen
       <ul className="flex flex-col gap-1">
         {state.users.map((user) => {
           const isSelf = user.user_id === state.selfUserId;
+          const isOwner = user.is_host === true;
           return (
             <li
               key={user.user_id}
@@ -42,9 +70,15 @@ export function UsersPanel({ state }: { state: SidebarState }): React.JSX.Elemen
             >
               <UserRound className="size-4 shrink-0 text-red-600" aria-hidden />
               <span className="truncate">{user.user_name}</span>
-              {isSelf && (
-                <span className="ml-auto shrink-0 rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-white">
-                  you
+              {/* you と owner が両方付く場合は you を左、owner を右に並べる。 */}
+              {(isSelf || isOwner) && (
+                <span className="ml-auto flex shrink-0 items-center gap-1">
+                  {isSelf && (
+                    <span className="rounded-full bg-red-600 px-1.5 py-0.5 text-[10px] font-semibold uppercase leading-none text-white">
+                      you
+                    </span>
+                  )}
+                  {isOwner && <OwnerBadge />}
                 </span>
               )}
             </li>
@@ -57,21 +91,132 @@ export function UsersPanel({ state }: { state: SidebarState }): React.JSX.Elemen
 
 export function ControlPanel({
   onLeave,
+  onDeleteRoom,
+  isOwner,
 }: {
   onLeave: () => void;
+  onDeleteRoom: () => void;
+  /** ローカルユーザーがルームのオーナー（ホスト）かどうか。 */
+  isOwner: boolean;
 }): React.JSX.Element {
   return (
-    <div className="flex flex-col gap-3 px-1">
-      <div>
-        <p className="text-sm font-semibold">パーティールームから退室</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          退室するとサイドバーが閉じます。
-        </p>
+    <div className="flex flex-col gap-8 px-1 pb-3 pt-6">
+      <div className="flex flex-col gap-3">
+        <div>
+          <p className="text-sm font-semibold">パーティールームから退室</p>
+          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+            退室するとサイドバーが閉じます。
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          size="lg"
+          className="w-full gap-1.5"
+          onClick={onLeave}
+        >
+          <LogOut className="size-4" aria-hidden /> 退室する
+        </Button>
       </div>
-      <Button variant="destructive" className="w-full gap-1.5" onClick={onLeave}>
-        <LogOut className="size-4" aria-hidden /> 退室する
-      </Button>
+
+      {isOwner && (
+        <div className="flex flex-col gap-3 border-t border-border pt-6">
+          <div>
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-semibold">ルームを削除</p>
+              <OwnerBadge />
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              オーナーのみが実行できます。全員が退室になります。誤操作防止のため
+              3 秒間長押しで削除します。
+            </p>
+          </div>
+          <HoldToDeleteButton onConfirm={onDeleteRoom} />
+        </div>
+      )}
     </div>
+  );
+}
+
+/**
+ * 3 秒間の長押しで {@link onConfirm} を発火するボタン。押している間は
+ * 背景が左から右へ満ちていくプログレスで残り時間を可視化する。
+ */
+function HoldToDeleteButton({
+  onConfirm,
+}: {
+  onConfirm: () => void;
+}): React.JSX.Element {
+  const [progress, setProgress] = useState(0);
+  const rafRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+  const firedRef = useRef(false);
+
+  const cancelHold = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    startRef.current = null;
+    setProgress(0);
+  }, []);
+
+  const startHold = useCallback(() => {
+    if (rafRef.current !== null) return;
+    firedRef.current = false;
+    startRef.current = null;
+    // ローカルな再帰関数で rAF ループを回す（自己参照 useCallback は不可のため）。
+    const loop = (timestamp: number): void => {
+      if (startRef.current === null) startRef.current = timestamp;
+      const ratio = Math.min(1, (timestamp - startRef.current) / DELETE_HOLD_MS);
+      setProgress(ratio);
+      if (ratio >= 1) {
+        rafRef.current = null;
+        startRef.current = null;
+        if (!firedRef.current) {
+          firedRef.current = true;
+          onConfirm();
+        }
+        setProgress(0);
+        return;
+      }
+      rafRef.current = requestAnimationFrame(loop);
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  }, [onConfirm]);
+
+  // アンマウント時に進行中の rAF を確実に止める。
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
+
+  const holding = progress > 0;
+  const remaining = Math.ceil((1 - progress) * (DELETE_HOLD_MS / 1000));
+
+  return (
+    <button
+      type="button"
+      onPointerDown={(event) => {
+        event.currentTarget.setPointerCapture(event.pointerId);
+        startHold();
+      }}
+      onPointerUp={cancelHold}
+      onPointerLeave={cancelHold}
+      onPointerCancel={cancelHold}
+      aria-label="ルームを削除（3秒長押し）"
+      className="relative h-10 w-full select-none overflow-hidden rounded-md border border-destructive/60 bg-destructive/10 px-3 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/15"
+    >
+      <span
+        className="absolute inset-y-0 left-0 bg-destructive/30"
+        style={{ width: `${progress * 100}%` }}
+        aria-hidden
+      />
+      <span className="relative z-10 flex items-center justify-center gap-1.5">
+        <Trash2 className="size-4" aria-hidden />
+        {holding ? `押し続けて削除… ${remaining}` : "ルームを削除（3秒長押し）"}
+      </span>
+    </button>
   );
 }
 

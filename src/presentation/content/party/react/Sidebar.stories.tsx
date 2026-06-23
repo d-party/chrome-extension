@@ -6,7 +6,7 @@ import { Sidebar } from "./Sidebar";
 import { SidebarStore } from "./sidebarStore";
 
 const SAMPLE_USERS: User[] = [
-  { user_id: "1", user_name: "たかし" },
+  { user_id: "1", user_name: "たかし", is_host: true },
   { user_id: "2", user_name: "はなこ" },
   { user_id: "3", user_name: "AnonymousUser" },
 ];
@@ -21,6 +21,7 @@ function frame(store: SidebarStore) {
         store={store}
         onCreateRoom={() => store.setJoined(true)}
         onLeave={() => store.hide()}
+        onDeleteRoom={() => store.resetToCreate()}
         onTabChange={() => {}}
       />
     </div>
@@ -99,24 +100,40 @@ export const HistoryTab: Story = {
   },
 };
 
-/** Participants tab. */
+/** Participants tab. Self is also the owner, so the "you" + 王冠 badges co-exist. */
 export const UsersTab: Story = {
   render: () => {
     const store = new SidebarStore();
     store.setMode("join");
     store.setJoined(true);
     store.updateUsers(SAMPLE_USERS);
+    store.setSelfUserId("1");
     store.setActiveTab("users");
     return frame(store);
   },
 };
 
-/** Control tab with the leave action. */
+/** Control tab as a guest: only the leave action is available. */
 export const ControlTab: Story = {
   render: () => {
     const store = new SidebarStore();
     store.setMode("join");
     store.setJoined(true);
+    store.updateUsers(SAMPLE_USERS);
+    store.setSelfUserId("2");
+    store.setActiveTab("control");
+    return frame(store);
+  },
+};
+
+/** Control tab as the owner: the hold-to-delete room action is shown. */
+export const OwnerControlTab: Story = {
+  render: () => {
+    const store = new SidebarStore();
+    store.setMode("join");
+    store.setJoined(true);
+    store.updateUsers(SAMPLE_USERS);
+    store.setSelfUserId("1");
     store.setActiveTab("control");
     return frame(store);
   },

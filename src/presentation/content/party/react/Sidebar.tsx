@@ -29,6 +29,8 @@ export interface SidebarProps {
   onCreateRoom: () => void;
   /** Leave the room. */
   onLeave: () => void;
+  /** Delete the room (owner only). */
+  onDeleteRoom: () => void;
   /** Called when the active tab changes (used to refresh the user list). */
   onTabChange?: (tab: SidebarTab) => void;
 }
@@ -37,6 +39,7 @@ export function Sidebar({
   store,
   onCreateRoom,
   onLeave,
+  onDeleteRoom,
   onTabChange,
 }: SidebarProps): React.JSX.Element | null {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -82,6 +85,7 @@ export function Sidebar({
                 store={store}
                 onCreateRoom={onCreateRoom}
                 onLeave={onLeave}
+                onDeleteRoom={onDeleteRoom}
                 onTabChange={onTabChange}
               />
             </motion.div>
@@ -97,8 +101,12 @@ function Panel({
   store,
   onCreateRoom,
   onLeave,
+  onDeleteRoom,
   onTabChange,
 }: SidebarProps & { state: SidebarState }): React.JSX.Element {
+  const isOwner = state.users.some(
+    (user) => user.user_id === state.selfUserId && user.is_host === true,
+  );
   return (
     <div className="flex h-full w-80 flex-col bg-card text-card-foreground shadow-2xl ring-1 ring-border">
       <header className="flex items-center justify-between bg-neutral-950/50 px-3 py-2.5 text-white">
@@ -158,7 +166,11 @@ function Panel({
               <UsersPanel state={state} />
             </TabsContent>
             <TabsContent value="control">
-              <ControlPanel onLeave={onLeave} />
+              <ControlPanel
+                onLeave={onLeave}
+                onDeleteRoom={onDeleteRoom}
+                isOwner={isOwner}
+              />
             </TabsContent>
           </div>
         </Tabs>
