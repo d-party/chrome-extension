@@ -23,6 +23,11 @@ const config: StorybookConfig = {
           "@": path.resolve(dirname, "../src"),
         },
       },
+      define: {
+        "process.env.D_PARTY_ENV": JSON.stringify(
+          process.env.D_PARTY_ENV ?? "development",
+        ),
+      },
     });
   },
 };
