@@ -46,6 +46,9 @@ export class RoomSession {
   private _inRoom = false;
   private joined = false;
   private resetDelayMs = 100;
+  // ルーム削除など、意図的にソケットを閉じるときに true にして、onClose の
+  // 「サーバーとの通信が終了」誤アラートと UI 上書きを抑止する。
+  private intentionalTeardown = false;
   // ホスト以外は video_operation をブロードキャストしない。create成功または
   // host_change でホストになったときに true になる。
   private isHost = false;
@@ -122,6 +125,12 @@ export class RoomSession {
       onOpen: () => onOpen?.(),
       onMessage: (message) => this.handleMessage(message),
       onClose: () => {
+        // room_deleted などで自分から閉じた場合は専用ハンドラ側で UI を
+        // 処理済みなので、ここでの誤アラート・状態上書きを行わない。
+        if (this.intentionalTeardown) {
+          this.intentionalTeardown = false;
+          return;
+        }
         if (this.joined) {
           this.deps.notifier.alert(SERVER_DISCONNECTED);
         } else if (this._inRoom) {
@@ -217,6 +226,15 @@ export class RoomSession {
 
   requestUserList(): void {
     this.send({ action: "user_list", request_id: now() });
+  }
+
+  /**
+   * ホスト（オーナー）専用: ルームの削除を要求する。サーバはルーム内全員へ
+   * `room_deleted` をブロードキャストする（自分自身も受信して UI をリセットする）。
+   * ホスト以外が呼んでもサーバ側で無視される。
+   */
+  deleteRoom(): void {
+    this.send({ action: "delete_room", request_id: now() });
   }
 
   sendReaction(reactionType: ReactionType): void {
@@ -333,6 +351,8 @@ export class RoomSession {
             icon: "host",
             label: "ホスト権限を獲得しました",
           });
+        } else if (message.message_type === "room_deleted") {
+          this.handleRoomDeleted();
         } else if (message.message_type === "failed_join") {
           // ルームが既に存在しない/終了済み。サーバはこの直後に close するので、
           // onClose 側の誤った SERVER_DISCONNECTED ではなく明確なメッセージを出す。
@@ -394,6 +414,23 @@ export class RoomSession {
         }
         break;
     }
+  }
+
+  /**
+   * ホストがルームを削除したときの処理（削除実行者自身もこの経路を通る）。
+   * 通知を出し、セッションを片付けてソケットを閉じ、サイドバーを
+   * 「ルーム作成」段階へ戻す。
+   */
+  private handleRoomDeleted(): void {
+    this.intentionalTeardown = true;
+    this.joined = false;
+    this._inRoom = false;
+    this.stopHeartbeat();
+    this.endConnectionTracking();
+    this.isHost = false;
+    this.deps.client.close();
+    this.deps.notifier.alert("ルームが削除されました");
+    this.deps.sidebar.resetToCreate();
   }
 
   // 他の参加者の操作通知 (operation_notification) を受信したとき、トーストと

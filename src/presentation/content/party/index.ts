@@ -69,6 +69,12 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
     session.leave();
     sidebarStore.hide();
   },
+  onDeleteRoom: () => {
+    // ホスト（オーナー）のみ表示されるボタンからの要求。サーバ側でも
+    // 非ホストは無視されるが、念のため inRoom を確認してから送る。
+    if (!session.inRoom) return;
+    session.deleteRoom();
+  },
   onTabChange: (tab: SidebarTab) => {
     if (tab === "users") session.requestUserList();
   },

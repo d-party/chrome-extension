@@ -104,6 +104,23 @@ export class SidebarStore {
   toggleCollapsed(): void {
     this.patch({ collapsed: !this.state.collapsed });
   }
+  /**
+   * ルーム削除などで一連のセッションが終了したとき、サイドバーを「ルーム作成」
+   * 段階へ戻す。参加者・履歴・共有リンク等のセッション状態をクリアする。
+   */
+  resetToCreate(): void {
+    this.patch({
+      mode: "create",
+      visible: true,
+      joined: false,
+      connectionStatus: "idle",
+      activeTab: "share",
+      shareUrl: "",
+      users: [],
+      selfUserId: "",
+      history: [],
+    });
+  }
 
   addHistory(entry: HistoryEntryInput): void {
     this.patch({
@@ -145,6 +162,9 @@ export class SidebarController implements SidebarView {
   }
   hideSidebar(): void {
     this.store.hide();
+  }
+  resetToCreate(): void {
+    this.store.resetToCreate();
   }
 }
 

@@ -38,6 +38,8 @@ export interface SidebarView {
   addHistory(entry: HistoryEntryInput): void;
   updateUserList(users: User[]): void;
   hideSidebar(): void;
+  /** Reset the sidebar back to the room-creation stage (e.g. after the room is deleted). */
+  resetToCreate(): void;
 }
 
 /** Plays the on-screen reaction animations. */
