@@ -270,13 +270,18 @@ function decorateModal(): void {
 }
 
 /**
- * Hijack the "今すぐ視聴する" links in the hover popups shown across dアニメストア
- * (top page, genre/series lists, etc.): when "動画は全て別タブで開く" is on, open
- * the player in a new tab instead of playing inline. Otherwise leave them alone.
- * These links carry the partId directly in `data-partid`.
+ * Hijack the inline-play links scattered across dアニメストア: when "動画は全て別タブ
+ * で開く" is on, open the player in a new tab instead of playing inline. Otherwise
+ * leave them alone. These all carry the partId directly in `data-partid`:
+ *  - `a.playlink`        : the "今すぐ視聴する" links in hover popups (top page,
+ *    genre/series lists, etc.);
+ *  - `a.directPlayReady` : the "視聴中の作品 / 続きから視聴する" resume widget on the
+ *    top page (tp_pc) — both its 続きから視聴する button and its thumbnail link.
  */
 function decoratePlaylinks(): void {
-  const links = document.querySelectorAll<HTMLElement>("a.playlink[data-partid]");
+  const links = document.querySelectorAll<HTMLElement>(
+    "a.playlink[data-partid], a.directPlayReady[data-partid]",
+  );
 
   for (const link of Array.from(links)) {
     if (link.hasAttribute(PLAYLINK_ATTR)) continue;
