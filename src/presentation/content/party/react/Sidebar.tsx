@@ -57,19 +57,23 @@ export function Sidebar({
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: 32, opacity: 0 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="flex h-full items-start justify-end p-2 text-foreground"
+              className="flex h-full items-center justify-end p-2 text-foreground"
             >
-              <button
+              <motion.button
                 type="button"
                 onClick={() => store.setCollapsed(false)}
                 aria-label="サイドバーを開く"
-                className="flex items-center gap-1 rounded-l-lg bg-red-800 px-2 py-3 text-white shadow-lg hover:bg-red-900"
+                whileHover={{ x: -3 }}
+                whileTap={{ scale: 0.96 }}
+                transition={{ type: "spring", stiffness: 400, damping: 25 }}
+                className="group flex flex-col items-center gap-2 rounded-l-2xl bg-gradient-to-b from-neutral-900 to-black px-2.5 py-4 text-white shadow-xl ring-1 ring-white/10 backdrop-blur-sm transition-colors hover:from-neutral-800 hover:to-neutral-950"
               >
-                <PanelRightOpen className="size-4" aria-hidden />
-                <span className="[writing-mode:vertical-rl] text-xs font-bold tracking-wide">
-                  d-party
-                </span>
-              </button>
+                <Logo className="size-4 drop-shadow" aria-hidden />
+                <PanelRightOpen
+                  className="size-4 opacity-60 transition-opacity group-hover:opacity-100"
+                  aria-hidden
+                />
+              </motion.button>
             </motion.div>
           ) : (
             <motion.div
