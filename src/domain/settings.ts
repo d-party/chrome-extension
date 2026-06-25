@@ -12,6 +12,12 @@ export interface Settings {
   hideReactionIcon: boolean;
   selfNotification: boolean;
   userName: string;
+  /**
+   * 表示アイコン。react-icons (Font Awesome 6) のキー文字列（例: "FaCat"）。
+   * ルーム参加時に user_name と同様にバックエンドへ送る。未設定や未知のキーは
+   * 既定の素朴なユーザーアイコンにフォールバックする（UserAvatar が解決）。
+   */
+  userIcon: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -22,6 +28,7 @@ export const DEFAULT_SETTINGS: Settings = {
   hideReactionIcon: false,
   selfNotification: false,
   userName: "ユーザー",
+  userIcon: "FaRegUser",
 };
 
 /** Mapping between domain fields and `chrome.storage` keys. */
@@ -33,4 +40,5 @@ export const STORAGE_KEYS = {
   hideReactionIcon: "hide_reaction_icon",
   selfNotification: "self_notification",
   userName: "user_name",
+  userIcon: "user_icon",
 } as const satisfies Record<keyof Settings, string>;

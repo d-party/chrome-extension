@@ -1,6 +1,7 @@
-import { Crown, LogOut, PartyPopper, Trash2, UserRound } from "lucide-react";
+import { Crown, LogOut, PartyPopper, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -52,13 +53,19 @@ export function CreatePanel({
   );
 }
 
-export function UsersPanel({ state }: { state: SidebarState }): React.JSX.Element {
+export function UsersPanel({
+  state,
+}: {
+  state: SidebarState;
+}): React.JSX.Element {
   if (state.users.length === 0) {
     return <EmptyHint text="参加者はいません" />;
   }
   return (
     <div className="px-1">
-      <p className="mb-2 text-xs text-muted-foreground">{state.users.length}人が参加中</p>
+      <p className="mb-2 text-xs text-muted-foreground">
+        {state.users.length}人が参加中
+      </p>
       <ul className="flex flex-col gap-1">
         {state.users.map((user) => {
           const isSelf = user.user_id === state.selfUserId;
@@ -68,7 +75,10 @@ export function UsersPanel({ state }: { state: SidebarState }): React.JSX.Elemen
               key={user.user_id}
               className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
             >
-              <UserRound className="size-4 shrink-0 text-red-600" aria-hidden />
+              <UserAvatar
+                iconKey={user.user_icon}
+                className="size-4 shrink-0 text-red-600"
+              />
               <span className="truncate">{user.user_name}</span>
               {/* you と owner が両方付く場合は you を左、owner を右に並べる。 */}
               {(isSelf || isOwner) && (
@@ -167,7 +177,10 @@ function HoldToDeleteButton({
     // ローカルな再帰関数で rAF ループを回す（自己参照 useCallback は不可のため）。
     const loop = (timestamp: number): void => {
       if (startRef.current === null) startRef.current = timestamp;
-      const ratio = Math.min(1, (timestamp - startRef.current) / DELETE_HOLD_MS);
+      const ratio = Math.min(
+        1,
+        (timestamp - startRef.current) / DELETE_HOLD_MS,
+      );
       setProgress(ratio);
       if (ratio >= 1) {
         rafRef.current = null;
@@ -222,6 +235,8 @@ function HoldToDeleteButton({
 
 export function EmptyHint({ text }: { text: string }): React.JSX.Element {
   return (
-    <p className="px-2 py-6 text-center text-xs text-muted-foreground">{text}</p>
+    <p className="px-2 py-6 text-center text-xs text-muted-foreground">
+      {text}
+    </p>
   );
 }

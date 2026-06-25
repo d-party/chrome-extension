@@ -12,17 +12,39 @@ export class ChromeStorageSettingsRepository {
   async getAll(): Promise<Settings> {
     const stored = await chrome.storage.sync.get(Object.values(STORAGE_KEYS));
     return {
-      autoAnotherTab: bool(stored[STORAGE_KEYS.autoAnotherTab], DEFAULT_SETTINGS.autoAnotherTab),
-      autoUserNameDecision: bool(stored[STORAGE_KEYS.autoUserNameDecision], DEFAULT_SETTINGS.autoUserNameDecision),
-      enablePictureInPicture: bool(stored[STORAGE_KEYS.enablePictureInPicture], DEFAULT_SETTINGS.enablePictureInPicture),
-      hideReaction: bool(stored[STORAGE_KEYS.hideReaction], DEFAULT_SETTINGS.hideReaction),
-      hideReactionIcon: bool(stored[STORAGE_KEYS.hideReactionIcon], DEFAULT_SETTINGS.hideReactionIcon),
-      selfNotification: bool(stored[STORAGE_KEYS.selfNotification], DEFAULT_SETTINGS.selfNotification),
+      autoAnotherTab: bool(
+        stored[STORAGE_KEYS.autoAnotherTab],
+        DEFAULT_SETTINGS.autoAnotherTab,
+      ),
+      autoUserNameDecision: bool(
+        stored[STORAGE_KEYS.autoUserNameDecision],
+        DEFAULT_SETTINGS.autoUserNameDecision,
+      ),
+      enablePictureInPicture: bool(
+        stored[STORAGE_KEYS.enablePictureInPicture],
+        DEFAULT_SETTINGS.enablePictureInPicture,
+      ),
+      hideReaction: bool(
+        stored[STORAGE_KEYS.hideReaction],
+        DEFAULT_SETTINGS.hideReaction,
+      ),
+      hideReactionIcon: bool(
+        stored[STORAGE_KEYS.hideReactionIcon],
+        DEFAULT_SETTINGS.hideReactionIcon,
+      ),
+      selfNotification: bool(
+        stored[STORAGE_KEYS.selfNotification],
+        DEFAULT_SETTINGS.selfNotification,
+      ),
       userName: str(stored[STORAGE_KEYS.userName], DEFAULT_SETTINGS.userName),
+      userIcon: str(stored[STORAGE_KEYS.userIcon], DEFAULT_SETTINGS.userIcon),
     };
   }
 
-  async set<K extends keyof Settings>(key: K, value: Settings[K]): Promise<void> {
+  async set<K extends keyof Settings>(
+    key: K,
+    value: Settings[K],
+  ): Promise<void> {
     await chrome.storage.sync.set({ [STORAGE_KEYS[key]]: value });
   }
 

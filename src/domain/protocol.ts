@@ -14,6 +14,11 @@ export interface User {
   user_id: string;
   user_name: string;
   /**
+   * 表示アイコン（react-icons / Font Awesome 6 のキー文字列）。
+   * 旧バックエンド互換のため任意（未指定なら既定アイコンにフォールバック）。
+   */
+  user_icon?: string;
+  /**
    * ルームのホスト（オーナー）かどうか。`user_list` で配信される。
    * 旧バックエンド互換のため任意（未指定なら非ホスト扱い）。
    */
@@ -48,6 +53,8 @@ export interface SyncOption {
 export interface CreateRoomMessage {
   action: "create";
   user_name: string;
+  /** 表示アイコン（react-icons / FA6 のキー）。バックエンドは未指定でも受理する。 */
+  user_icon: string;
   part_id: string;
   /**
    * 視聴中アニメのタイトル（ページ DOM から取得）。OGP 表示用にルーム作成時に
@@ -60,6 +67,8 @@ export interface CreateRoomMessage {
 export interface JoinRoomMessage {
   action: "join";
   user_name: string;
+  /** 表示アイコン（react-icons / FA6 のキー）。バックエンドは未指定でも受理する。 */
+  user_icon: string;
   room_id: string;
   request_id: number;
 }

@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { UserAvatar } from "@/components/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,11 +27,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { type Settings } from "@/domain/settings";
 
+import { IconPicker } from "./IconPicker";
 import { InfoPanel } from "./InfoPanel";
 import { PersonalStatsPanel } from "./PersonalStatsPanel";
 import { useSettings } from "./useSettings";
 
-type ToggleKey = Exclude<keyof Settings, "userName">;
+type ToggleKey = Exclude<keyof Settings, "userName" | "userIcon">;
 
 interface Toggle {
   key: ToggleKey;
@@ -223,40 +225,57 @@ export function PopupApp(): React.JSX.Element {
                   <h2 className="text-sm font-semibold">ユーザー設定</h2>
                 </div>
                 {editing ? (
-                  <form className="flex flex-col gap-1.5" onSubmit={submitName}>
-                    <Label
-                      htmlFor="user-name"
-                      className="text-xs text-muted-foreground"
-                    >
-                      表示名（15文字以下）
-                    </Label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        ref={inputRef}
-                        id="user-name"
-                        className="flex-1"
-                        maxLength={15}
-                        placeholder="あなたの名前"
-                        value={draftName}
-                        onChange={(e) => setDraftName(e.target.value)}
-                      />
-                      <Button
-                        type="submit"
-                        size="icon"
-                        variant="ghost"
-                        className="text-red-600 hover:text-red-600"
-                        aria-label="表示名を確定"
+                  // 編集モード: 鉛筆ボタンから入り、表示名とアイコンをまとめて編集する。
+                  // 名前は ✓ で確定、アイコンは選択した時点で即保存する。
+                  <form className="flex flex-col gap-3" onSubmit={submitName}>
+                    <div className="flex flex-col gap-1.5">
+                      <Label
+                        htmlFor="user-name"
+                        className="text-xs text-muted-foreground"
                       >
-                        <Check className="size-5" aria-hidden />
-                      </Button>
+                        表示名（15文字以下）
+                      </Label>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          ref={inputRef}
+                          id="user-name"
+                          className="flex-1"
+                          maxLength={15}
+                          placeholder="あなたの名前"
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                        />
+                        <Button
+                          type="submit"
+                          size="icon"
+                          variant="ghost"
+                          className="text-red-600 hover:text-red-600"
+                          aria-label="表示名とアイコンを確定"
+                        >
+                          <Check className="size-5" aria-hidden />
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <span className="text-xs text-muted-foreground">
+                        アイコン
+                      </span>
+                      <IconPicker
+                        value={settings.userIcon}
+                        onChange={(key) => void update("userIcon", key)}
+                      />
                     </div>
                   </form>
                 ) : (
                   <div className="flex flex-col gap-1.5">
                     <span className="text-xs text-muted-foreground">
-                      表示名
+                      表示名・アイコン
                     </span>
                     <div className="flex items-center gap-2">
+                      <UserAvatar
+                        iconKey={settings.userIcon}
+                        className="size-5 shrink-0 text-red-600"
+                      />
                       <p className="flex-1 truncate text-sm font-medium">
                         {settings.userName || (
                           <span className="text-muted-foreground">未設定</span>
@@ -268,7 +287,9 @@ export function PopupApp(): React.JSX.Element {
                         variant="ghost"
                         className="text-muted-foreground hover:text-foreground"
                         onClick={startEditing}
-                        aria-label={saved ? "保存しました" : "表示名を編集"}
+                        aria-label={
+                          saved ? "保存しました" : "表示名とアイコンを編集"
+                        }
                       >
                         {saved ? (
                           <Check className="size-5 text-red-600" aria-hidden />

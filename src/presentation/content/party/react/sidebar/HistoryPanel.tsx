@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 
+import { UserAvatar } from "@/components/UserAvatar";
 import type { HistoryIcon } from "@/domain/history";
 import { cn } from "@/lib/utils";
 
@@ -47,7 +48,11 @@ const SELF_FILTER = "__self__";
 /** Vertical gap between rows (`gap-0.5` = 2px), needed for the fit calculation. */
 const ROW_GAP_PX = 2;
 
-export function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Element {
+export function HistoryPanel({
+  state,
+}: {
+  state: SidebarState;
+}): React.JSX.Element {
   const [filter, setFilter] = useState<string>(ALL_FILTER);
   const [page, setPage] = useState(0);
   const [perPage, setPerPage] = useState(8);
@@ -93,7 +98,9 @@ export function HistoryPanel({ state }: { state: SidebarState }): React.JSX.Elem
     if (!row || containerHeight <= 0) return;
     const rowHeight = row.getBoundingClientRect().height;
     if (rowHeight <= 0) return;
-    const fit = Math.floor((containerHeight + ROW_GAP_PX) / (rowHeight + ROW_GAP_PX));
+    const fit = Math.floor(
+      (containerHeight + ROW_GAP_PX) / (rowHeight + ROW_GAP_PX),
+    );
     setPerPage(Math.max(1, fit));
   }, []);
 
@@ -236,12 +243,19 @@ function HistoryRow({ entry }: { entry: HistoryEntry }): React.JSX.Element {
       </time>
       <div className="flex min-w-0 flex-1 items-center gap-1.5">
         {entry.direction === "received" && entry.user && (
-          <span className="max-w-[5.5rem] shrink-0 truncate text-xs font-semibold text-foreground">
-            {entry.user}
+          <span className="flex max-w-[5.5rem] shrink-0 items-center gap-1 text-xs font-semibold text-foreground">
+            <UserAvatar
+              iconKey={entry.userIcon}
+              className="size-3 shrink-0 text-red-600"
+            />
+            <span className="truncate">{entry.user}</span>
           </span>
         )}
         {!isSystem && (
-          <OpIcon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
+          <OpIcon
+            className="size-3.5 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
         )}
         <span className="truncate text-xs text-foreground">{entry.label}</span>
       </div>

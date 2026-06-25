@@ -6,12 +6,14 @@ import { Sidebar } from "./Sidebar";
 import { SidebarStore } from "./sidebarStore";
 
 const SAMPLE_USERS: User[] = [
-  { user_id: "1", user_name: "たかし", is_host: true },
-  { user_id: "2", user_name: "はなこ" },
+  { user_id: "1", user_name: "たかし", user_icon: "FaCat", is_host: true },
+  { user_id: "2", user_name: "はなこ", user_icon: "FaUserNinja" },
+  // user_icon を持たない旧バックエンド互換のユーザー（既定アイコンにフォールバック）。
   { user_id: "3", user_name: "AnonymousUser" },
 ];
 
-const SAMPLE_URL = "http://localhost/anime-store/lobby/4f1c2e9a-1234-4abc-9def-0123456789ab";
+const SAMPLE_URL =
+  "http://localhost/anime-store/lobby/4f1c2e9a-1234-4abc-9def-0123456789ab";
 const SAMPLE_TITLE = "Dr.STONE SCIENCE FUTURE - 第1話 - RYUSUI VS. SENKU";
 
 function frame(store: SidebarStore) {
@@ -68,12 +70,17 @@ export const HistoryTab: Story = {
     store.setMode("join");
     store.setJoined(true);
     store.updateUsers(SAMPLE_USERS);
-    store.addHistory({ direction: "system", icon: "party", label: "ルームを作成しました" });
+    store.addHistory({
+      direction: "system",
+      icon: "party",
+      label: "ルームを作成しました",
+    });
     store.addHistory({
       direction: "system",
       icon: "join",
       label: "『たかし』さんが入室",
       user: "たかし",
+      userIcon: "FaCat",
     });
     store.addHistory({ direction: "sent", icon: "play", label: "再生" });
     store.addHistory({
@@ -81,19 +88,26 @@ export const HistoryTab: Story = {
       icon: "pause",
       label: "停止",
       user: "たかし",
+      userIcon: "FaCat",
     });
     store.addHistory({
       direction: "received",
       icon: "rate",
       label: "×1.5 倍速",
       user: "はなこ",
+      userIcon: "FaUserNinja",
     });
-    store.addHistory({ direction: "system", icon: "sync", label: "再生状況をホストにシンクしました" });
+    store.addHistory({
+      direction: "system",
+      icon: "sync",
+      label: "再生状況をホストにシンクしました",
+    });
     store.addHistory({
       direction: "system",
       icon: "join",
       label: "『はなこ』さんが入室",
       user: "はなこ",
+      userIcon: "FaUserNinja",
     });
     store.setActiveTab("history");
     return frame(store);
