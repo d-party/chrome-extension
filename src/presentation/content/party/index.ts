@@ -102,7 +102,11 @@ let playerEventsBound = false;
 
 // --- page lifecycle ---------------------------------------------------------
 window.addEventListener("load", () => {
-  if (mode !== "normal") video().removeAttribute("autoplay");
+  // create では入室前から「停止＋中央 ▶」状態を見せる。autoplay 属性を外すだけだと
+  // ネイティブプレイヤーが初期(initing)状態のままで pause オーバーレイ(#pauseInfo)を
+  // 描画しないため、primePausedOverlay で再生→ネイティブ一時停止を一度通す。
+  // join は loadeddata 後に同期と合わせてプライミングする（下の loadeddata ハンドラ）。
+  if (mode === "create") primePausedOverlay();
   nextPageAnotherTab();
 });
 
@@ -139,7 +143,11 @@ video().addEventListener(
     }
     addControlButtons();
     bindPlayerEvents();
-    session.joinRoom(getParam("room_id") ?? "");
+    // 停止状態で ▶ を見せてから join する。プライミング中はまだ inRoom=false
+    // なので、再生→一時停止で発火する playing/pause が active() を満たさず、
+    // 自分の操作としてルームへブロードキャストされない（host を巻き込まない）。
+    // join 後はホストの状態に応じて sync_response → onSync が再生/停止を上書きする。
+    primePausedOverlay(() => session.joinRoom(getParam("room_id") ?? ""));
   },
   { once: true },
 );
@@ -257,6 +265,66 @@ function bindPlayerEvents(): void {
 }
 
 // --- helpers ----------------------------------------------------------------
+
+/**
+ * 同期前の動画を「停止＋中央 ▶ オーバーレイ」状態で見せる。
+ *
+ * ネイティブプレイヤーの ▶ オーバーレイ(#pauseInfo)は「再生中 → 一時停止」の
+ * 状態遷移でしか描画されない。autoplay を抑止して最初から止めると initing 状態の
+ * ままで ▶ が出ないため、いったんミュートで再生してから .backArea のネイティブ
+ * 一時停止を通し、プレイヤー自身を正規の paused 状態へ遷移させる。
+ *
+ * 重要（ルーム入室時の安全性）: `.backArea` クリックで発火する pause イベントは
+ * 非同期に届く。`done`（= join 等で inRoom を true にする処理）をクリック直後に
+ * 同期実行すると、この「プライミングの一時停止」が自分の操作としてルームへ
+ * ブロードキャストされ、ホストを巻き込んで停止させてしまう。これを避けるため、
+ * pause イベントを実際に観測してから（＝ inRoom が false のうちにプライミングの
+ * メディアイベントを消化してから）`done` を呼ぶ。
+ *
+ * 音漏れを避けるためプライミング中だけミュートし、終了時に元の状態へ戻す。
+ * 再生できない（自動再生ブロック等）場合は初期状態のまま `done` を呼ぶ。
+ * @param done 一時停止が確定した後（または再生不能時）に一度だけ呼ばれる。
+ */
+function primePausedOverlay(done?: () => void): void {
+  const v = video();
+  const wasMuted = v.muted;
+  v.muted = true;
+  let finished = false;
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    v.muted = wasMuted;
+    done?.();
+  };
+  const pauseNow = () => {
+    if (v.paused) {
+      finish();
+      return;
+    }
+    // pause イベントを観測してから finish（= done）する。これで done 実行時には
+    // プライミング由来の pause が既に消化済みになり、ルームへ漏れない。
+    const onPaused = () => {
+      v.removeEventListener("pause", onPaused);
+      finish();
+    };
+    v.addEventListener("pause", onPaused);
+    byClass("backArea")?.click(); // ネイティブ一時停止 → ▶ を描画
+    // フォールバック: 何らかの理由で pause イベントが来なくても join は必ず行う。
+    window.setTimeout(finish, 800);
+  };
+  if (!v.paused) {
+    // autoplay が先行して既に再生中なら、待たずにそのまま一時停止へ進む。
+    pauseNow();
+    return;
+  }
+  const onPlaying = () => {
+    v.removeEventListener("playing", onPlaying);
+    pauseNow();
+  };
+  v.addEventListener("playing", onPlaying);
+  void v.play().catch(() => finish());
+}
+
 function bindClick(id: string, handler: () => void): void {
   const el = document.getElementById(id);
   if (el) el.onclick = handler;
