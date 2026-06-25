@@ -39,6 +39,11 @@ export interface HistoryEntryInput {
    * events. Used both for display and for the participant filter.
    */
   user?: string;
+  /**
+   * The participant's avatar icon (react-icons / FA6 key), shown next to their
+   * name. Optional: missing/unknown keys fall back to the default user icon.
+   */
+  userIcon?: string;
 }
 
 export interface OperationMeta {

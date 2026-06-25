@@ -1,9 +1,5 @@
 import { describeOperation } from "@/domain/history";
-import type {
-  IncomingMessage,
-  OutgoingMessage,
-  User,
-} from "@/domain/protocol";
+import type { IncomingMessage, OutgoingMessage, User } from "@/domain/protocol";
 import type { ReactionType } from "@/domain/reactions";
 import type { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 import { ANIMESTORE_REDIRECT_ENDPOINT } from "@/infrastructure/env";
@@ -90,6 +86,7 @@ export class RoomSession {
       this.send({
         action: "create",
         user_name: this.userName,
+        user_icon: this.userIcon,
         part_id: partId,
         title,
         request_id: now(),
@@ -108,6 +105,7 @@ export class RoomSession {
       this.send({
         action: "join",
         user_name: this.userName,
+        user_icon: this.userIcon,
         room_id: roomId,
         request_id: now(),
       });
@@ -238,7 +236,11 @@ export class RoomSession {
   }
 
   sendReaction(reactionType: ReactionType): void {
-    this.send({ action: "reaction", reaction_type: reactionType, request_id: now() });
+    this.send({
+      action: "reaction",
+      reaction_type: reactionType,
+      request_id: now(),
+    });
     this.deps.stats.reactionSent(reactionType);
   }
 
@@ -373,6 +375,7 @@ export class RoomSession {
           icon: "join",
           label: `『${message.user.user_name}』さんが入室`,
           user: message.user.user_name,
+          userIcon: message.user.user_icon,
         });
         break;
       case "user_list":
@@ -385,6 +388,7 @@ export class RoomSession {
           icon: "leave",
           label: `『${message.user.user_name}』さんが退室`,
           user: message.user.user_name,
+          userIcon: message.user.user_icon,
         });
         break;
       case "sync_request":
@@ -406,7 +410,11 @@ export class RoomSession {
         }
         break;
       case "operation_notification":
-        this.notifyOperation(message.operation, message.user.user_name);
+        this.notifyOperation(
+          message.operation,
+          message.user.user_name,
+          message.user.user_icon,
+        );
         break;
       case "reaction":
         if (!settings.current().hideReaction) {
@@ -435,7 +443,11 @@ export class RoomSession {
 
   // 他の参加者の操作通知 (operation_notification) を受信したとき、トーストと
   // 履歴に「受信」エントリとして表示する。
-  private notifyOperation(operation: string, userName: string): void {
+  private notifyOperation(
+    operation: string,
+    userName: string,
+    userIcon?: string,
+  ): void {
     const meta = describeOperation(operation);
     if (!meta) return;
     this.deps.notifier.info(`『${userName}』さんが${meta.label}`);
@@ -444,6 +456,7 @@ export class RoomSession {
       icon: meta.icon,
       label: meta.label,
       user: userName,
+      userIcon,
     });
   }
 
@@ -467,6 +480,10 @@ export class RoomSession {
 
   private get userName(): string {
     return this.deps.settings.current().userName;
+  }
+
+  private get userIcon(): string {
+    return this.deps.settings.current().userIcon;
   }
 }
 
