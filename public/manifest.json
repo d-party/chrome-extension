@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "d-party",
   "description": "dアニメストアでは行う事ができない、オンラインでの『同時に視聴機能』を提供するための拡張機能",
-  "version": "2.8.2",
+  "version": "2.8.3",
   "icons": {
     "16": "icon/icon16.png",
     "48": "icon/icon48.png",
