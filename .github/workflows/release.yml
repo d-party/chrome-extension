@@ -93,13 +93,73 @@ jobs:
           generate_release_notes: true
           target_commitish: main
 
+      # Chrome Web Store API を curl で直接叩く。
+      # 以前は mnao305/chrome-extension-upload を使っていたが、API のレスポンスボディを
+      # 一切ログに出さない仕様のため 400 等の障害切り分けが不可能だった
+      # （`itemError[].error_code` / `uploadState` / `statusDetail` が見えない）。
+      # ここでは OAuth2 token exchange → upload(PUT) → publish(POST) を順に実行し、
+      # 各レスポンスを JSON のまま GitHub Actions ログへ出力する。
+      # 参考: https://developer.chrome.com/docs/webstore/using-api
       - name: Upload to Chrome Web Store
-        uses: mnao305/chrome-extension-upload@v6.0.0
-        with:
-          file-path: d-party_${{ steps.version.outputs.new_version }}.zip
-          extension-id: ${{ secrets.EXTENSION_ID }}
-          client-id: ${{ secrets.CLIENT_ID }}
-          client-secret: ${{ secrets.CLIENT_SECRET }}
-          refresh-token: ${{ secrets.REFRESH_TOKEN }}
-          # 既定はアップロードのみ。root から publish=true が渡されたときだけ公開申請する。
-          publish: ${{ inputs.publish }}
+        env:
+          EXTENSION_ID: ${{ secrets.EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          PUBLISH: ${{ inputs.publish }}
+          ZIP: d-party_${{ steps.version.outputs.new_version }}.zip
+        run: |
+          set -euo pipefail
+
+          # 1) refresh token -> access token
+          echo "::group::Exchange refresh_token for access_token"
+          token_resp=$(curl -sS -X POST https://oauth2.googleapis.com/token \
+            --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" \
+            --data-urlencode "refresh_token=${REFRESH_TOKEN}" \
+            --data-urlencode "grant_type=refresh_token")
+          # access_token / id_token はログに出さない
+          echo "${token_resp}" | jq 'del(.access_token, .id_token)'
+          echo "::endgroup::"
+          access_token=$(echo "${token_resp}" | jq -r '.access_token // empty')
+          if [ -z "${access_token}" ]; then
+            echo "::error::failed to obtain access_token (see token response above)"
+            exit 1
+          fi
+
+          # 2) Upload zip (PUT). 既存ドラフトを上書きする。
+          echo "::group::Upload ${ZIP} to item ${EXTENSION_ID}"
+          upload_resp=$(curl -sS -X PUT \
+            -H "Authorization: Bearer ${access_token}" \
+            -H "x-goog-api-version: 2" \
+            -T "${ZIP}" \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${EXTENSION_ID}")
+          echo "${upload_resp}" | jq .
+          echo "::endgroup::"
+          upload_state=$(echo "${upload_resp}" | jq -r '.uploadState // empty')
+          if [ "${upload_state}" != "SUCCESS" ]; then
+            echo "::error::CWS upload failed (uploadState=${upload_state:-<none>})"
+            exit 1
+          fi
+
+          # 3) Publish (任意)。既定はアップロードのみ。
+          if [ "${PUBLISH}" = "true" ]; then
+            echo "::group::Publish item ${EXTENSION_ID}"
+            publish_resp=$(curl -sS -X POST \
+              -H "Authorization: Bearer ${access_token}" \
+              -H "x-goog-api-version: 2" \
+              -H "Content-Length: 0" \
+              "https://www.googleapis.com/chromewebstore/v1.1/items/${EXTENSION_ID}/publish")
+            echo "${publish_resp}" | jq .
+            echo "::endgroup::"
+            status=$(echo "${publish_resp}" | jq -r '.status[0] // empty')
+            case "${status}" in
+              OK|ITEM_PENDING_REVIEW) ;;
+              *)
+                echo "::error::CWS publish failed (status=${status:-<none>})"
+                exit 1
+                ;;
+            esac
+          else
+            echo "publish=false: アップロードのみ完了。公開は Developer Dashboard から手動で行ってください。"
+          fi
