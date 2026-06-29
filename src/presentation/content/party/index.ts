@@ -341,14 +341,24 @@ function addControlButtons(): void {
   mountPlayerControls({
     anchor: space,
     initialSettings: currentSettings,
-    subscribe: (cb) => settingsRepo.onChange(cb),
+    // Deliver the stored value immediately (the settings load is async and may
+    // not have resolved by mount time), then keep it live on changes. Without
+    // the eager getAll the added extra reactions wouldn't appear until the next
+    // settings change.
+    subscribe: (cb) => {
+      void settingsRepo.getAll().then(cb);
+      return settingsRepo.onChange(cb);
+    },
     handlers: {
       onSync: () => {
         if (guard.available && session.inRoom) session.requestSync();
       },
       onReaction: (type) => {
         if (!session.inRoom) return;
-        reactions.play(type);
+        reactions.play(type, {
+          userName: currentSettings.userName,
+          mode: currentSettings.reactionDisplay,
+        });
         session.sendReaction(type);
       },
     },

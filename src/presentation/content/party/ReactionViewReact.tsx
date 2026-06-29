@@ -1,9 +1,12 @@
 import { createRoot } from "react-dom/client";
 
-import type { ReactionView } from "@/application/ports";
-import type { ReactionType } from "@/domain/reactions";
+import type { ReactionPlayOptions, ReactionView } from "@/application/ports";
 
-import { ReactionLayer, type ReactionLayerHandle } from "./react/reactions/ReactionLayer";
+import {
+  ReactionLayer,
+  type ReactionLayerHandle,
+  type ReactionPush,
+} from "./react/reactions/ReactionLayer";
 
 /**
  * React-based reaction overlay. Mounts a transparent layer over the
@@ -14,15 +17,20 @@ import { ReactionLayer, type ReactionLayerHandle } from "./react/reactions/React
 export class ReactionViewReact implements ReactionView {
   private handle: ReactionLayerHandle | null = null;
   private mounted = false;
-  private pending: ReactionType[] = [];
+  private pending: ReactionPush[] = [];
 
-  play(type: ReactionType): void {
+  play(id: string, opts?: ReactionPlayOptions): void {
+    const push: ReactionPush = {
+      id,
+      userName: opts?.userName,
+      mode: opts?.mode ?? "normal",
+    };
     this.ensureMounted();
     if (this.handle) {
-      this.handle.push(type);
+      this.handle.push(push);
     } else {
       // Mount is asynchronous (React effect); queue until the layer registers.
-      this.pending.push(type);
+      this.pending.push(push);
     }
   }
 
@@ -47,7 +55,7 @@ export class ReactionViewReact implements ReactionView {
       <ReactionLayer
         register={(h) => {
           this.handle = h;
-          for (const t of this.pending) h.push(t);
+          for (const p of this.pending) h.push(p);
           this.pending = [];
         }}
       />,

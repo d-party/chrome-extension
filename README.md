@@ -59,6 +59,14 @@ src/
 public/            manifest.json・popup.html・css・icon・images・assets
 ```
 
+## リアクション素材（サードパーティ）
+
+リアクションのアニメーションは **Google Noto Emoji**（[noto-emoji-animation](https://googlefonts.github.io/noto-emoji-animation/)）の Lottie を使用しています。ライセンスは **Apache License 2.0**。
+
+- デフォルトリアクション（5 種）と、エクストラリアクションのカタログ（最大 100 種、肌色は黄色のみ）の Lottie を `src/presentation/content/party/react/reactions/lottie/`（`extra/` 配下にエクストラ）へ同梱しています。
+- 静的アイコン（ピッカー／プレイヤーのバー）は [react-icons](https://react-icons.github.io/react-icons/) を使用します。
+- **注意**: エクストラ 100 種を `content-party` バンドルへ静的 import するため、当該バンドルは数 MB 増加します（オフラインで動作する代わりにサイズが大きい）。将来的には id ごとの動的 import チャンク化＋`web_accessible_resources` による遅延読み込みで縮小できます。
+
 ## ライセンス
 
 MIT License
