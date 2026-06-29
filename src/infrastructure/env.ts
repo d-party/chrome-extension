@@ -19,6 +19,7 @@ export const BACKEND_PROTOCOL = IS_PRODUCTION ? "https://" : "http://";
 export const WEBSOCKET_PROTOCOL = IS_PRODUCTION ? "wss://" : "ws://";
 
 export const API_ENDPOINT = `${BACKEND_PROTOCOL}${BACKEND_HOST}api/v1/`;
+export const HEALTH_CHECK_ENDPOINT = `${API_ENDPOINT}health`;
 export const VERSION_CHECK_ENDPOINT = `${API_ENDPOINT}chrome-extension/version-check`;
 
 /**

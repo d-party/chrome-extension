@@ -9,6 +9,7 @@ const CONNECTION_STATUS_META: Record<
   idle: { label: "接続前", dotClass: "bg-neutral-400" },
   connected: { label: "接続済み", dotClass: "bg-emerald-500" },
   failed: { label: "接続失敗", dotClass: "bg-red-500" },
+  maintenance: { label: "メンテナンス中", dotClass: "bg-yellow-400" },
 };
 
 export function ConnectionBadge({
