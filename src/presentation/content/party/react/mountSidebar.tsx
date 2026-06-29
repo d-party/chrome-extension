@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 
+import { HEALTH_CHECK_ENDPOINT } from "@/infrastructure/env";
 import { PortalContainerContext } from "@/lib/portalContainer";
 
 import { Sidebar } from "./Sidebar";
@@ -110,5 +111,31 @@ export function mountSidebar(handlers: SidebarHandlers): MountedSidebar {
     </PortalContainerContext.Provider>,
   );
 
+  scheduleHealthCheck(store);
+
   return { store, controller };
+}
+
+/**
+ * サイドバーが初めて表示されたとき一度だけヘルスチェックを実行する。
+ * 失敗（ネットワークエラーまたは非 2xx）した場合はステータスを `"maintenance"` に
+ * 変更してメンテナンス中の黄色バッジを表示する。接続が成功すれば WS 側が
+ * `setConnectionStatus("connected")` を呼ぶため自動的に上書きされる。
+ */
+function scheduleHealthCheck(store: SidebarStore): void {
+  let done = false;
+  const unsubscribe = store.subscribe(() => {
+    if (done) return;
+    const { visible } = store.getSnapshot();
+    if (!visible) return;
+    done = true;
+    unsubscribe();
+    fetch(HEALTH_CHECK_ENDPOINT, { method: "GET" })
+      .then((res) => {
+        if (!res.ok) store.setConnectionStatus("maintenance");
+      })
+      .catch(() => {
+        store.setConnectionStatus("maintenance");
+      });
+  });
 }
