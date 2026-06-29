@@ -1,6 +1,8 @@
 import {
   DEFAULT_SETTINGS,
+  REACTION_DISPLAY_MODES,
   STORAGE_KEYS,
+  type ReactionDisplayMode,
   type Settings,
 } from "@/domain/settings";
 
@@ -36,6 +38,14 @@ export class ChromeStorageSettingsRepository {
         stored[STORAGE_KEYS.selfNotification],
         DEFAULT_SETTINGS.selfNotification,
       ),
+      reactionDisplay: reactionDisplay(
+        stored[STORAGE_KEYS.reactionDisplay],
+        DEFAULT_SETTINGS.reactionDisplay,
+      ),
+      extraReactions: strArray(
+        stored[STORAGE_KEYS.extraReactions],
+        DEFAULT_SETTINGS.extraReactions,
+      ),
       userName: str(stored[STORAGE_KEYS.userName], DEFAULT_SETTINGS.userName),
       userIcon: str(stored[STORAGE_KEYS.userIcon], DEFAULT_SETTINGS.userIcon),
     };
@@ -64,4 +74,19 @@ function bool(value: unknown, fallback: boolean): boolean {
 
 function str(value: unknown, fallback: string): string {
   return typeof value === "string" && value.length > 0 ? value : fallback;
+}
+
+function strArray(value: unknown, fallback: string[]): string[] {
+  if (!Array.isArray(value)) return fallback;
+  const items = value.filter((v): v is string => typeof v === "string");
+  return items;
+}
+
+function reactionDisplay(
+  value: unknown,
+  fallback: ReactionDisplayMode,
+): ReactionDisplayMode {
+  return REACTION_DISPLAY_MODES.includes(value as ReactionDisplayMode)
+    ? (value as ReactionDisplayMode)
+    : fallback;
 }

@@ -8,7 +8,7 @@ import type { PlayerOption, SyncOption, User } from "@/domain/protocol";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
 import type { HistoryEntryInput } from "@/domain/history";
 import type { ReactionType } from "@/domain/reactions";
-import type { Settings } from "@/domain/settings";
+import type { ReactionDisplayMode, Settings } from "@/domain/settings";
 
 export interface Notifier {
   success(messageHtml: string): void;
@@ -42,9 +42,17 @@ export interface SidebarView {
   resetToCreate(): void;
 }
 
+export interface ReactionPlayOptions {
+  /** 送信者の表示名（バッジ表示で使用）。 */
+  userName?: string;
+  /** 表示方法。未指定なら `normal`。 */
+  mode?: ReactionDisplayMode;
+}
+
 /** Plays the on-screen reaction animations. */
 export interface ReactionView {
-  play(type: ReactionType): void;
+  /** `id` はデフォルト名（`fav` 等）または エクストラ id（Noto コードポイント）。 */
+  play(id: string, opts?: ReactionPlayOptions): void;
 }
 
 /** Read-only access to the current user settings (kept live). */

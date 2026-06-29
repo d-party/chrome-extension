@@ -8,8 +8,6 @@
  * WebSocket protocol.)
  */
 
-import type { ReactionType } from "./reactions";
-
 export interface User {
   user_id: string;
   user_name: string;
@@ -119,7 +117,8 @@ export interface DeleteRoomMessage {
 
 export interface ReactionMessage {
   action: "reaction";
-  reaction_type: ReactionType;
+  /** デフォルト名（`fav` 等）または エクストラ id（Noto コードポイント）。 */
+  reaction_type: string;
   request_id: number;
 }
 
@@ -200,7 +199,10 @@ export interface OperationNotificationEvent {
 
 export interface ReactionEvent {
   action: "reaction";
-  reaction_type: ReactionType;
+  /** デフォルト名（`fav` 等）または エクストラ id（Noto コードポイント）。 */
+  reaction_type: string;
+  /** 送信者（バッジ表示の「ユーザー名 : リアクション」用）。旧バックエンド互換で任意。 */
+  user?: User;
 }
 
 export type IncomingMessage =

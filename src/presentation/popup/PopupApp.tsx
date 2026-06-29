@@ -14,6 +14,7 @@ import {
   Settings as SettingsIcon,
   SlidersHorizontal,
   Smile,
+  Sparkles,
   User,
   Users,
 } from "lucide-react";
@@ -25,14 +26,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { type Settings } from "@/domain/settings";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
+  type ReactionDisplayMode,
+  type Settings,
+} from "@/domain/settings";
 
 import { IconPicker } from "./IconPicker";
 import { InfoPanel } from "./InfoPanel";
 import { PersonalStatsPanel } from "./PersonalStatsPanel";
+import { ReactionsPanel } from "./ReactionsPanel";
 import { useSettings } from "./useSettings";
 
-type ToggleKey = Exclude<keyof Settings, "userName" | "userIcon">;
+type ToggleKey = Exclude<
+  keyof Settings,
+  "userName" | "userIcon" | "extraReactions" | "reactionDisplay"
+>;
 
 interface Toggle {
   key: ToggleKey;
@@ -88,6 +102,29 @@ const UTILITY_TOGGLES: Toggle[] = [
   },
 ];
 
+/** リアクションの表示方法の選択肢（設定タブ）。 */
+const REACTION_DISPLAY_OPTIONS: {
+  value: ReactionDisplayMode;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "normal",
+    label: "通常表示",
+    description: "下から上へ浮かび上がる（現状）",
+  },
+  {
+    value: "badge",
+    label: "バッジ表示",
+    description: "右下に「名前 : リアクション」を小さく表示",
+  },
+  {
+    value: "left",
+    label: "左寄り表示",
+    description: "左側を揺れながら下から上へ移動",
+  },
+];
+
 function appVersion(): string {
   try {
     return chrome.runtime.getManifest().version;
@@ -117,6 +154,9 @@ export function PopupApp(): React.JSX.Element {
   const [editing, setEditing] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [saved, setSaved] = useState(false);
+  // The active tab drives which trigger shows its text label (the others stay
+  // icon-only so four tabs fit the 360px popup).
+  const [tab, setTab] = useState("settings");
   const inputRef = useRef<HTMLInputElement>(null);
   // Only one settings section is expanded at a time (accordion); opening one
   // collapses any other that is already open.
@@ -199,21 +239,35 @@ export function PopupApp(): React.JSX.Element {
         </div>
       </header>
 
-      <Tabs defaultValue="settings" className="gap-0">
-        <TabsList className="mx-4 mt-3 w-auto">
-          <TabsTrigger value="settings">
-            <SettingsIcon className="size-3.5" aria-hidden />
-            設定
-          </TabsTrigger>
-          <TabsTrigger value="stats">
-            <BarChart3 className="size-3.5" aria-hidden />
-            統計
-          </TabsTrigger>
-          <TabsTrigger value="info">
-            <Info className="size-3.5" aria-hidden />
-            情報
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={tab} onValueChange={setTab} className="gap-0">
+        <TooltipProvider delayDuration={300}>
+          <TabsList className="mx-4 mt-3 w-auto">
+            <IconTab
+              value="settings"
+              label="設定"
+              icon={SettingsIcon}
+              active={tab === "settings"}
+            />
+            <IconTab
+              value="reaction"
+              label="リアクション"
+              icon={Smile}
+              active={tab === "reaction"}
+            />
+            <IconTab
+              value="stats"
+              label="統計"
+              icon={BarChart3}
+              active={tab === "stats"}
+            />
+            <IconTab
+              value="info"
+              label="情報"
+              icon={Info}
+              active={tab === "info"}
+            />
+          </TabsList>
+        </TooltipProvider>
 
         <div className="relative">
           <TabsContent value="settings" forceMount className={OVERLAY_PANEL}>
@@ -302,7 +356,7 @@ export function PopupApp(): React.JSX.Element {
                 )}
               </section>
 
-              {/* Watch-party settings */}
+              {/* Watch-party settings (reaction display method lives here) */}
               <ToggleSection
                 title="同時視聴設定"
                 icon={MonitorPlay}
@@ -310,6 +364,12 @@ export function PopupApp(): React.JSX.Element {
                 renderToggle={renderToggle}
                 open={openSection === "sync"}
                 onToggle={() => toggleSection("sync")}
+                extra={
+                  <ReactionDisplaySelect
+                    value={settings.reactionDisplay}
+                    onChange={(mode) => void update("reactionDisplay", mode)}
+                  />
+                }
               />
 
               {/* Utility settings (kept last) */}
@@ -320,6 +380,15 @@ export function PopupApp(): React.JSX.Element {
                 renderToggle={renderToggle}
                 open={openSection === "utility"}
                 onToggle={() => toggleSection("utility")}
+              />
+            </main>
+          </TabsContent>
+
+          <TabsContent value="reaction" forceMount className={OVERLAY_PANEL}>
+            <main className="p-4">
+              <ReactionsPanel
+                value={settings.extraReactions}
+                onChange={(ids) => void update("extraReactions", ids)}
               />
             </main>
           </TabsContent>
@@ -346,6 +415,74 @@ export function PopupApp(): React.JSX.Element {
 }
 
 /**
+ * A tab trigger that shows the label only while active so four tabs fit the
+ * 360px popup without crowding: inactive tabs collapse to their icon, the
+ * active one expands to icon + label. Inactive tabs surface the label as a
+ * tooltip on hover/focus; the active tab already shows it, so it needs no
+ * tooltip. The label stays available to assistive tech via aria-label.
+ */
+function IconTab({
+  value,
+  label,
+  icon: Icon,
+  active,
+}: {
+  value: string;
+  label: string;
+  icon: LucideIcon;
+  active: boolean;
+}): React.JSX.Element {
+  const reduce = useReducedMotion();
+  // Keep the tree structure identical whether or not the tab is active: always
+  // render the same Tooltip wrapper so React never remounts the subtree (a
+  // remount would discard AnimatePresence and kill the label transition). The
+  // active tab already shows its label, so its tooltip is forced closed.
+  //
+  // The tooltip stays *controlled* for the component's whole lifetime (open is
+  // always a boolean) to avoid React's controlled/uncontrolled switch warning:
+  // when active we pin it closed, otherwise we follow hover/focus ourselves.
+  const [open, setOpen] = useState(false);
+  return (
+    <Tooltip open={active ? false : open} onOpenChange={setOpen}>
+      <TooltipTrigger asChild>
+        {/* Wrapping in TooltipTrigger makes Radix Tooltip stamp its own
+            data-state on the button, clobbering Tabs' data-state="active" — so
+            the data-[state=active] styles in TabsTrigger no longer fire. Drive
+            the active styling from our own `active` prop instead. */}
+        <TabsTrigger
+          value={value}
+          aria-label={label}
+          className={
+            active ? "bg-card text-foreground shadow-sm" : undefined
+          }
+        >
+          <Icon className="size-4 shrink-0" aria-hidden />
+          {/* The label slides/fades open when the tab becomes active instead of
+              popping in abruptly. */}
+          <AnimatePresence initial={false}>
+            {active && (
+              <motion.span
+                key="label"
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: "auto", opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={
+                  reduce ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }
+                }
+                className="inline-block overflow-hidden whitespace-nowrap"
+              >
+                {label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </TabsTrigger>
+      </TooltipTrigger>
+      <TooltipContent>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/**
  * A settings section that expands on click. Open state is controlled by the
  * parent so the sections behave as an accordion — opening one collapses any
  * other that is already open.
@@ -357,6 +494,7 @@ function ToggleSection({
   renderToggle,
   open,
   onToggle,
+  extra,
 }: {
   title: string;
   icon: LucideIcon;
@@ -364,6 +502,8 @@ function ToggleSection({
   renderToggle: (toggle: Toggle) => React.JSX.Element;
   open: boolean;
   onToggle: () => void;
+  /** トグル群の下に差し込む追加コンテンツ（例: リアクション表示方法セレクタ）。 */
+  extra?: React.ReactNode;
 }): React.JSX.Element {
   const reduce = useReducedMotion();
   return (
@@ -396,9 +536,101 @@ function ToggleSection({
             className="overflow-hidden"
           >
             <div className="mt-1 space-y-0.5">{toggles.map(renderToggle)}</div>
+            {extra}
           </motion.div>
         )}
       </AnimatePresence>
     </section>
+  );
+}
+
+/**
+ * リアクションの表示方法を選ぶコントロール（同時視聴設定の中に置く）。ボタンを押す
+ * と選択肢が開き、選ぶと閉じる。
+ */
+function ReactionDisplaySelect({
+  value,
+  onChange,
+}: {
+  value: ReactionDisplayMode;
+  onChange: (mode: ReactionDisplayMode) => void;
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  const current =
+    REACTION_DISPLAY_OPTIONS.find((o) => o.value === value) ??
+    REACTION_DISPLAY_OPTIONS[0];
+
+  return (
+    <div className="mt-0.5">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2.5 transition-colors hover:bg-muted/70"
+      >
+        <span className="flex items-center gap-3">
+          <Sparkles
+            className="size-4 shrink-0 text-muted-foreground"
+            aria-hidden
+          />
+          <span className="flex flex-col text-left">
+            <span className="text-sm font-medium leading-tight">
+              リアクションの表示方法
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {current.label}
+            </span>
+          </span>
+        </span>
+        <ChevronDown
+          className={`size-4 shrink-0 text-muted-foreground transition-transform ${
+            open ? "rotate-180" : ""
+          }`}
+          aria-hidden
+        />
+      </button>
+      {open && (
+        <div role="radiogroup" className="mt-1 flex flex-col gap-1 px-1 pb-1">
+          {REACTION_DISPLAY_OPTIONS.map((opt) => {
+            const selected = opt.value === value;
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                onClick={() => {
+                  onChange(opt.value);
+                  setOpen(false);
+                }}
+                className={`flex items-start gap-2 rounded-lg border p-2 text-left transition-colors ${
+                  selected
+                    ? "border-red-600 bg-red-600/5"
+                    : "border-border hover:bg-muted/70"
+                }`}
+              >
+                <span
+                  className={`mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-full border ${
+                    selected ? "border-red-600" : "border-muted-foreground/40"
+                  }`}
+                >
+                  {selected && (
+                    <span className="size-2 rounded-full bg-red-600" />
+                  )}
+                </span>
+                <span className="flex flex-col">
+                  <span className="text-sm font-medium leading-tight">
+                    {opt.label}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    {opt.description}
+                  </span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

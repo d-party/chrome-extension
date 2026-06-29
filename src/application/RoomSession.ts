@@ -1,6 +1,6 @@
 import { describeOperation } from "@/domain/history";
 import type { IncomingMessage, OutgoingMessage, User } from "@/domain/protocol";
-import type { ReactionType } from "@/domain/reactions";
+import { isDefaultReaction } from "@/domain/reactions";
 import type { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 import { ANIMESTORE_REDIRECT_ENDPOINT } from "@/infrastructure/env";
 
@@ -235,13 +235,17 @@ export class RoomSession {
     this.send({ action: "delete_room", request_id: now() });
   }
 
-  sendReaction(reactionType: ReactionType): void {
+  sendReaction(reactionId: string): void {
     this.send({
       action: "reaction",
-      reaction_type: reactionType,
+      reaction_type: reactionId,
       request_id: now(),
     });
-    this.deps.stats.reactionSent(reactionType);
+    // 統計はデフォルトリアクションのみ対象。エクストラ（Noto コードポイント id）は
+    // 集計しない。
+    if (isDefaultReaction(reactionId)) {
+      this.deps.stats.reactionSent(reactionId);
+    }
   }
 
   /** Leave the room (caller is responsible for any UI teardown). */
@@ -418,7 +422,11 @@ export class RoomSession {
         break;
       case "reaction":
         if (!settings.current().hideReaction) {
-          reactions.play(message.reaction_type as ReactionType);
+          // id はデフォルト名/エクストラ id の両対応（未知 id は ReactionLayer で無視）。
+          reactions.play(message.reaction_type, {
+            userName: message.user?.user_name,
+            mode: settings.current().reactionDisplay,
+          });
         }
         break;
     }
