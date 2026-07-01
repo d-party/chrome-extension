@@ -1,4 +1,4 @@
-import { BookOpen, ExternalLink, Heart, Home } from "lucide-react";
+import { BookOpen, ExternalLink, Heart, Home, Tv } from "lucide-react";
 import type { ComponentType, SVGProps } from "react";
 import { FaChrome } from "react-icons/fa6";
 
@@ -26,6 +26,12 @@ const LINKS: InfoLink[] = [
     label: "使い方",
     description: "同時視聴の始め方ガイド",
     icon: BookOpen,
+  },
+  {
+    href: "https://animestore.docomo.ne.jp/animestore/tp/",
+    label: "dアニメストア",
+    description: "同時視聴の対象サービス（公式トップ）",
+    icon: Tv,
   },
   {
     href: "https://chrome.google.com/webstore/detail/d-party/ibmlcfpijglpfbfgaleaeooebgdgcbpc?hl=ja",
