@@ -76,6 +76,12 @@ export interface VideoOperationMessage {
   user_id: string;
   operation: string;
   option: PlayerOption;
+  /**
+   * 現在視聴中のエピソードタイトル（ページ DOM から取得）。タイマー画面が
+   * エピソード切替に追従して表示するために毎回の操作へ載せる。バックエンドは
+   * 未指定でも受理する（旧バージョン互換）。
+   */
+  title?: string;
   request_id: number;
 }
 
@@ -144,6 +150,8 @@ export interface VideoOperationEvent {
   operation: string;
   user: User;
   option: SyncOption;
+  /** 現在視聴中のエピソードタイトル。旧バックエンドは送らないため任意。 */
+  title?: string;
 }
 
 export interface CreateEvent {
