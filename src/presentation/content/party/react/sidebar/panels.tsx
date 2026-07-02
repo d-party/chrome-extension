@@ -1,15 +1,23 @@
-import { Crown, LogOut, PartyPopper, Trash2 } from "lucide-react";
+import { Crown, LogOut, PartyPopper, Plus, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { UserAvatar } from "@/components/UserAvatar";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import type { RoomSettings as RoomSettingsValue } from "@/domain/roomSettings";
 
 import type { SidebarState } from "../sidebarStore";
+import { RoomSettings } from "./RoomSettings";
 
 /** ルーム削除を確定するまでの長押し時間（誤操作防止）。 */
 const DELETE_HOLD_MS = 3000;
@@ -34,18 +42,45 @@ function OwnerBadge(): React.JSX.Element {
 
 export function CreatePanel({
   onCreateRoom,
+  draftSettings,
+  onChangeDraftSettings,
 }: {
   onCreateRoom: () => void;
+  /** 「詳細設定」アコーディオンで組み立てる初期設定の下書き。 */
+  draftSettings: RoomSettingsValue;
+  onChangeDraftSettings: (next: RoomSettingsValue) => void;
 }): React.JSX.Element {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-3 p-6 text-center">
-      <PartyPopper className="size-8 text-red-600" aria-hidden />
-      <div>
-        <p className="text-sm font-semibold">パーティールームを作成</p>
-        <p className="mt-1 text-xs text-muted-foreground">
-          パーティーを主催して、みんなで同時に鑑賞しよう！
-        </p>
+    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <PartyPopper className="size-8 text-red-600" aria-hidden />
+        <div>
+          <p className="text-sm font-semibold">パーティールームを作成</p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            パーティーを主催して、みんなで同時に鑑賞しよう！
+          </p>
+        </div>
       </div>
+
+      {/* 入室時に設定する詳細設定。トリガはプラスアイコン付きの「詳細設定」。 */}
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="advanced" className="border-b-0">
+          <AccordionTrigger className="justify-center text-muted-foreground hover:text-foreground hover:no-underline">
+            <Plus
+              className="size-4 transition-transform group-data-[state=open]:rotate-45"
+              aria-hidden
+            />
+            詳細設定
+          </AccordionTrigger>
+          <AccordionContent>
+            <RoomSettings
+              value={draftSettings}
+              onChange={onChangeDraftSettings}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
+
       <Button onClick={onCreateRoom} className="w-full">
         ルームを作成
       </Button>
@@ -103,15 +138,40 @@ export function ControlPanel({
   onLeave,
   onDeleteRoom,
   isOwner,
+  roomSettings,
+  onChangeRoomSettings,
 }: {
   onLeave: () => void;
   onDeleteRoom: () => void;
   /** ローカルユーザーがルームのオーナー（ホスト）かどうか。 */
   isOwner: boolean;
+  /** サーバから通知された現在のルーム詳細設定。 */
+  roomSettings: RoomSettingsValue;
+  /** 詳細設定の変更（オーナーのみ有効。update_setting を送る）。 */
+  onChangeRoomSettings: (next: RoomSettingsValue) => void;
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-8 px-1 pb-3 pt-6">
+      {/* 入室後の詳細設定。オーナーのみ編集可能。非オーナーには現在値を read-only 表示。 */}
       <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold">詳細設定</p>
+          {isOwner ? (
+            <OwnerBadge />
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              （オーナーのみ変更可能）
+            </span>
+          )}
+        </div>
+        <RoomSettings
+          value={roomSettings}
+          onChange={onChangeRoomSettings}
+          disabled={!isOwner}
+        />
+      </div>
+
+      <div className="flex flex-col gap-3 border-t border-border pt-6">
         <div>
           <p className="text-sm font-semibold">パーティールームから退室</p>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">

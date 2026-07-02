@@ -1,6 +1,12 @@
 import { describeOperation } from "@/domain/history";
 import type { IncomingMessage, OutgoingMessage, User } from "@/domain/protocol";
 import { isDefaultReaction } from "@/domain/reactions";
+import {
+  type RoomSettings,
+  DEFAULT_ROOM_SETTINGS,
+  fromWire,
+  isDefaultRoomSettings,
+} from "@/domain/roomSettings";
 import type { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 import { ANIMESTORE_REDIRECT_ENDPOINT } from "@/infrastructure/env";
 
@@ -63,6 +69,12 @@ export class RoomSession {
   private connectionCheckpointTimer: number | null = null;
   static CONNECTION_CHECKPOINT_MS = 60000;
 
+  // サーバから通知された現在のルーム詳細設定。一方通行モードの動画操作抑止や
+  // リアクション禁止の判定に使う。room_setting イベントで更新される。
+  private roomSettings: RoomSettings = DEFAULT_ROOM_SETTINGS;
+  // ルーム作成時に指定された初期設定。create 確定後に update_setting で適用する。
+  private pendingSettings: RoomSettings | null = null;
+
   userId = "";
   roomId = "";
 
@@ -76,11 +88,17 @@ export class RoomSession {
 
   // -- connection lifecycle --------------------------------------------------
 
-  /** Host a new room for the given part. */
-  createRoom(partId: string, title = ""): void {
+  /**
+   * Host a new room for the given part.
+   *
+   * `settings` は「詳細設定」の初期値。create メッセージ自体は変更せず（後方互換）、
+   * create 確定後に `update_setting` で適用する。既定値のときは送信を省く。
+   */
+  createRoom(partId: string, title = "", settings?: RoomSettings): void {
     this._inRoom = true;
     this.joined = false;
     this.resetDelayMs = 100;
+    this.pendingSettings = settings ?? null;
     this.deps.sidebar.setConnectionStatus("idle");
     this.openSocket(() => {
       this.send({
@@ -91,6 +109,21 @@ export class RoomSession {
         title,
         request_id: now(),
       });
+    });
+  }
+
+  /**
+   * ルーム詳細設定を更新する（オーナー限定。ホスト以外が呼んでもサーバ側で無視される）。
+   * 入室後の操作タブからの変更で使う。
+   */
+  updateSetting(settings: RoomSettings): void {
+    this.roomSettings = settings;
+    this.send({
+      action: "update_setting",
+      one_way: settings.oneWay,
+      owner_leave_delete: settings.ownerLeaveDelete,
+      disable_reaction: settings.disableReaction,
+      request_id: now(),
     });
   }
 
@@ -144,6 +177,8 @@ export class RoomSession {
         this.isHost = false;
         this._inRoom = false;
         this.joined = false;
+        this.roomSettings = DEFAULT_ROOM_SETTINGS;
+        this.pendingSettings = null;
         this.deps.sidebar.setJoined(false);
         this.deps.sidebar.setConnectionStatus("failed");
       },
@@ -184,6 +219,9 @@ export class RoomSession {
   // ルームへブロードキャストできる（相互にコントロール可）。フィードバックループは
   // ActionGuard（suppress/allow）で抑止する。
   sendVideoOperation(operation: string): void {
+    // 一方通行(アクセラレーター)モードでは、オーナー以外は動画操作を送らない
+    // （サーバ側でもブロックされるが、無駄な送信とローカルの取り消しループを避ける）。
+    if (this.roomSettings.oneWay && !this.isHost) return;
     this.send({
       action: "video_operation",
       user_id: this.userId,
@@ -236,6 +274,14 @@ export class RoomSession {
   }
 
   sendReaction(reactionId: string): void {
+    // リアクション禁止設定では、サーバへ送らず（＝他者へ配信されず記録もされない）、
+    // 自分の画面にだけローカルで表示する（仕様:「自分にだけは表示される」）。
+    if (this.roomSettings.disableReaction) {
+      this.deps.reactions.play(reactionId, {
+        mode: this.deps.settings.current().reactionDisplay,
+      });
+      return;
+    }
     this.send({
       action: "reaction",
       reaction_type: reactionId,
@@ -255,6 +301,8 @@ export class RoomSession {
     this.endConnectionTracking();
     this.isHost = false;
     this._inRoom = false;
+    this.roomSettings = DEFAULT_ROOM_SETTINGS;
+    this.pendingSettings = null;
   }
 
   // ホスト専用: 5 秒ごとに現在の再生状態を video_operation("sync") として
@@ -329,6 +377,15 @@ export class RoomSession {
           icon: "party",
           label: "ルームを作成しました",
         });
+        // 「詳細設定」で指定した初期設定を、create 確定後に適用する。既定値なら送らない
+        // （create メッセージ自体は不変に保ち、旧バックエンド互換を維持するため）。
+        if (
+          this.pendingSettings &&
+          !isDefaultRoomSettings(this.pendingSettings)
+        ) {
+          this.updateSetting(this.pendingSettings);
+        }
+        this.pendingSettings = null;
         break;
       case "join":
         this.userId = message.user.user_id;
@@ -429,6 +486,13 @@ export class RoomSession {
           });
         }
         break;
+      case "room_setting":
+        // サーバから配布される現在のルーム詳細設定を反映する。一方通行モードの
+        // 動画操作抑止やリアクション禁止の判定に使う。旧バックエンドは送らないため
+        // 未受信なら既定値（すべて false）のままで現行挙動になる。
+        this.roomSettings = fromWire(message);
+        sidebar.setRoomSettings(this.roomSettings);
+        break;
     }
   }
 
@@ -444,6 +508,8 @@ export class RoomSession {
     this.stopHeartbeat();
     this.endConnectionTracking();
     this.isHost = false;
+    this.roomSettings = DEFAULT_ROOM_SETTINGS;
+    this.pendingSettings = null;
     this.deps.client.close();
     this.deps.notifier.alert("ルームが削除されました");
     this.deps.sidebar.resetToCreate();

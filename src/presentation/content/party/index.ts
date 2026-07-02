@@ -53,7 +53,11 @@ const client = new PartyWebSocketClient(WEBSOCKET_ENDPOINT);
 // Mode comes from the URL (?party=create|join).
 const partyParam = getParam("party");
 const mode: "create" | "join" | "normal" =
-  partyParam === "create" ? "create" : partyParam === "join" ? "join" : "normal";
+  partyParam === "create"
+    ? "create"
+    : partyParam === "join"
+      ? "join"
+      : "normal";
 
 // Mount the React sidebar (Shadow DOM) and bridge it to RoomSession.
 const { store: sidebarStore, controller: sidebarController } = mountSidebar({
@@ -62,7 +66,12 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
     bindPlayerEvents();
     // 視聴中アニメのタイトルをページ DOM から取得してルーム作成時に一度だけ送る
     // （OGP 表示用）。取得できない場合は空文字で、バックエンドは未指定でも受理する。
-    session.createRoom(getParam("partId") ?? "", shareTitle());
+    // 「詳細設定」で組み立てた初期設定も渡す（create 確定後に update_setting で適用）。
+    session.createRoom(
+      getParam("partId") ?? "",
+      shareTitle(),
+      sidebarStore.getSnapshot().draftRoomSettings,
+    );
   },
   onLeave: () => {
     if (!session.inRoom) return;
@@ -74,6 +83,11 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
     // 非ホストは無視されるが、念のため inRoom を確認してから送る。
     if (!session.inRoom) return;
     session.deleteRoom();
+  },
+  onUpdateRoomSettings: (roomSettings) => {
+    // 操作タブからの詳細設定変更。オーナー以外はサーバ側で無視される。
+    if (!session.inRoom) return;
+    session.updateSetting(roomSettings);
   },
   onTabChange: (tab: SidebarTab) => {
     if (tab === "users") session.requestUserList();
@@ -169,7 +183,8 @@ function bindPlayerEvents(): void {
   // ラベル・アイコンは operation キーから一元的に解決する（domain/history）。
   const announce = (operation: string) => {
     session.sendActionNotification(operation);
-    if (!currentSettings.selfNotification) session.notifySentOperation(operation);
+    if (!currentSettings.selfNotification)
+      session.notifySentOperation(operation);
   };
 
   v.addEventListener("playing", () => {
@@ -178,7 +193,8 @@ function bindPlayerEvents(): void {
     guard.allow();
   });
   v.addEventListener("pause", () => {
-    if (active() && v.duration !== v.currentTime) session.sendVideoOperation("pause");
+    if (active() && v.duration !== v.currentTime)
+      session.sendVideoOperation("pause");
     guard.allow();
   });
   v.addEventListener("loadeddata", () => {
@@ -190,7 +206,8 @@ function bindPlayerEvents(): void {
     guard.allow();
   });
   v.addEventListener("ratechange", () => {
-    if (active() && v.playbackRate !== 0) session.sendVideoOperation("ratechange");
+    if (active() && v.playbackRate !== 0)
+      session.sendVideoOperation("ratechange");
     guard.allow();
   });
 
@@ -223,7 +240,12 @@ function bindPlayerEvents(): void {
     }
   });
 
-  for (const cls of ["seekArea", "skipButton", "skip10Button", "skip30Button"]) {
+  for (const cls of [
+    "seekArea",
+    "skipButton",
+    "skip10Button",
+    "skip30Button",
+  ]) {
     bindClass(cls, () => {
       if (session.inRoom) announce("skip");
     });
@@ -250,11 +272,30 @@ function bindPlayerEvents(): void {
   window.addEventListener("keydown", (event) => {
     const playKeys = ["Space", "Enter", "NumpadEnter", "KeyK"];
     const skipKeys = [
-      "KeyJ", "KeyL", "ArrowRight", "ArrowLeft",
-      "Digit1", "Digit2", "Digit3", "Digit4", "Digit5",
-      "Digit6", "Digit7", "Digit8", "Digit9", "Digit0",
-      "Numpad1", "Numpad2", "Numpad3", "Numpad4", "Numpad5",
-      "Numpad6", "Numpad7", "Numpad8", "Numpad9", "Numpad0",
+      "KeyJ",
+      "KeyL",
+      "ArrowRight",
+      "ArrowLeft",
+      "Digit1",
+      "Digit2",
+      "Digit3",
+      "Digit4",
+      "Digit5",
+      "Digit6",
+      "Digit7",
+      "Digit8",
+      "Digit9",
+      "Digit0",
+      "Numpad1",
+      "Numpad2",
+      "Numpad3",
+      "Numpad4",
+      "Numpad5",
+      "Numpad6",
+      "Numpad7",
+      "Numpad8",
+      "Numpad9",
+      "Numpad0",
     ];
     if (playKeys.includes(event.code)) {
       if (active()) announce(!v.paused ? "play" : "stop");
@@ -425,7 +466,10 @@ function mountPipControl(): void {
       mount(el);
     }
   });
-  observer.observe(document.documentElement, { childList: true, subtree: true });
+  observer.observe(document.documentElement, {
+    childList: true,
+    subtree: true,
+  });
 }
 
 function nextPageAnotherTab(): void {

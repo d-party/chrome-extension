@@ -12,6 +12,7 @@ import { useSyncExternalStore } from "react";
 import { Logo } from "@/components/Logo";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import type { RoomSettings as RoomSettingsValue } from "@/domain/roomSettings";
 
 import {
   type SidebarState,
@@ -31,6 +32,8 @@ export interface SidebarProps {
   onLeave: () => void;
   /** Delete the room (owner only). */
   onDeleteRoom: () => void;
+  /** Update room settings (owner only; ignored by the server for non-hosts). */
+  onUpdateRoomSettings: (settings: RoomSettingsValue) => void;
   /** Called when the active tab changes (used to refresh the user list). */
   onTabChange?: (tab: SidebarTab) => void;
 }
@@ -40,6 +43,7 @@ export function Sidebar({
   onCreateRoom,
   onLeave,
   onDeleteRoom,
+  onUpdateRoomSettings,
   onTabChange,
 }: SidebarProps): React.JSX.Element | null {
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot);
@@ -90,6 +94,7 @@ export function Sidebar({
                 onCreateRoom={onCreateRoom}
                 onLeave={onLeave}
                 onDeleteRoom={onDeleteRoom}
+                onUpdateRoomSettings={onUpdateRoomSettings}
                 onTabChange={onTabChange}
               />
             </motion.div>
@@ -106,6 +111,7 @@ function Panel({
   onCreateRoom,
   onLeave,
   onDeleteRoom,
+  onUpdateRoomSettings,
   onTabChange,
 }: SidebarProps & { state: SidebarState }): React.JSX.Element {
   const isOwner = state.users.some(
@@ -116,7 +122,9 @@ function Panel({
       <header className="flex items-center justify-between bg-neutral-950/50 px-3 py-2.5 text-white">
         <div className="flex items-center gap-2">
           <Logo className="size-5" aria-hidden />
-          <span className="text-sm font-bold tracking-tight text-[#cc0033]">d-party</span>
+          <span className="text-sm font-bold tracking-tight text-[#cc0033]">
+            d-party
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <ConnectionBadge status={state.connectionStatus} />
@@ -133,7 +141,13 @@ function Panel({
       </header>
 
       {state.mode === "create" && !state.joined ? (
-        <CreatePanel onCreateRoom={onCreateRoom} />
+        <CreatePanel
+          onCreateRoom={onCreateRoom}
+          draftSettings={state.draftRoomSettings}
+          onChangeDraftSettings={(settings) =>
+            store.setDraftRoomSettings(settings)
+          }
+        />
       ) : (
         <Tabs
           value={state.activeTab}
@@ -174,6 +188,8 @@ function Panel({
                 onLeave={onLeave}
                 onDeleteRoom={onDeleteRoom}
                 isOwner={isOwner}
+                roomSettings={state.roomSettings}
+                onChangeRoomSettings={onUpdateRoomSettings}
               />
             </TabsContent>
           </div>

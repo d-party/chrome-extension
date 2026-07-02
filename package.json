@@ -18,6 +18,7 @@
     "license:check": "pnpm dlx license-checker-rseidelsohn@5.0.1 --production --excludePrivatePackages --onlyAllow \"$(grep -v '^[[:space:]]*#' license-whitelist-node.txt | grep -v '^[[:space:]]*$' | paste -sd ';')\""
   },
   "dependencies": {
+    "@radix-ui/react-accordion": "^1.2.15",
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-slot": "^1.1.1",
     "@radix-ui/react-switch": "^1.1.2",
