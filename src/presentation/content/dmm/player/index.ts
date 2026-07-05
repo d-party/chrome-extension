@@ -13,6 +13,7 @@ import {
 import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 
 import { getParam } from "../../dom/utils";
+import { mountDmmPartyButton } from "../../dom/dmmPartyButton";
 import { mountSidebar, sidebarWidth } from "../../party/react/mountSidebar";
 import { mountPlayerControls } from "../../party/react/PlayerControls";
 import type { SidebarTab } from "../../party/react/sidebarStore";
@@ -131,6 +132,13 @@ const session = new RoomSession({
 
 sidebarStore.setMode(mode);
 if (mode === "join") sidebarStore.setJoined(true);
+
+// 通常視聴（normal）では、お気に入り/シェアのアクション行に「パーティー作成」アイコンを
+// 出し、クリックでその場で作成サイドバーを開く（?party=create への遷移・リロード不要）。
+// setMode("create") は visible も true にするため、これだけで作成パネルが開く。
+if (mode === "normal") {
+  mountDmmPartyButton({ onClick: () => sidebarStore.setMode("create") });
+}
 
 // DMM は React SPA でプレイヤーがビューポート基準（w-full / h-dvh / fixed のコントローラ）
 // なので DOM は再配置しない。サイドバーは「プレイヤー領域の右横」にだけ並べたいので:
