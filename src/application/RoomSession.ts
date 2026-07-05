@@ -270,6 +270,8 @@ export class RoomSession {
       user_id: this.userId,
       operation,
       option: this.deps.player.getOption(),
+      // タイマー画面がエピソード切替に追従できるよう、現在のタイトルを毎回同梱する。
+      title: this.deps.player.getTitle(),
       request_id: now(),
     });
     this.deps.guard.allow();
@@ -363,6 +365,9 @@ export class RoomSession {
         user_id: this.userId,
         operation: "sync",
         option: this.deps.player.getOption(),
+        // ハートビートにもタイトルを載せ、タイマー画面のドリフト補正と同時に
+        // 現在のエピソードタイトルも 5 秒ごとに追従させる。
+        title: this.deps.player.getTitle(),
         request_id: now(),
       });
     }, RoomSession.HEARTBEAT_MS);

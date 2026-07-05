@@ -1,8 +1,14 @@
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Timer } from "lucide-react";
 import { useState } from "react";
 import { FaEnvelope, FaFacebookF, FaXTwitter } from "react-icons/fa6";
 import { SiLine } from "react-icons/si";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
 import {
   Tooltip,
@@ -12,6 +18,12 @@ import {
 import { FACEBOOK_APP_ID } from "@/infrastructure/env";
 
 import type { SidebarState } from "../sidebarStore";
+
+/** タイマー画面はロビー URL に `?timer=true` を付けたもの（新規 URL は発行しない）。 */
+function timerUrl(shareUrl: string): string {
+  if (!shareUrl) return "";
+  return shareUrl.includes("?") ? `${shareUrl}&timer=true` : `${shareUrl}?timer=true`;
+}
 
 export function SharePanel({ state }: { state: SidebarState }): React.JSX.Element {
   const [copied, setCopied] = useState(false);
@@ -55,6 +67,10 @@ export function SharePanel({ state }: { state: SidebarState }): React.JSX.Elemen
           {copied ? "コピーしました" : "リンクをコピー"}
         </TooltipContent>
       </Tooltip>
+
+      {/* 共有 URL の下に「タイマーのみのURL」を折りたたみで用意する。押下で URL 欄を表示。 */}
+      <TimerUrlAccordion url={timerUrl(url)} />
+
       <div className="flex items-center justify-center gap-3">
         <ShareIcon
           label="Xでシェア"
@@ -115,6 +131,54 @@ export function SharePanel({ state }: { state: SidebarState }): React.JSX.Elemen
         </ShareIcon>
       </div>
     </div>
+  );
+}
+
+/**
+ * 「タイマーのみのURL」アコーディオン。展開するとタイマー画面の URL 欄（コピー可）を表示する。
+ * 拡張機能・dアニメストア不要で、ロビー URL に `?timer=true` を付けるだけで人力同期の
+ * タイマー画面を開ける（新規 URL は発行しない）。
+ */
+function TimerUrlAccordion({ url }: { url: string }): React.JSX.Element {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (!url) return;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1200);
+  };
+
+  return (
+    <Accordion type="single" collapsible className="w-full">
+      <AccordionItem value="timer" className="border-b-0">
+        <AccordionTrigger className="text-muted-foreground hover:text-foreground hover:no-underline">
+          <Timer className="size-4" aria-hidden />
+          タイマーのみのURL
+        </AccordionTrigger>
+        <AccordionContent>
+          <p className="mb-1.5 text-[11px] leading-snug text-muted-foreground">
+            拡張機能なし・dアニメストア不要で、再生中の動画のタイトルと時間だけを表示します。
+          </p>
+          <button
+            type="button"
+            onClick={copy}
+            disabled={!url}
+            aria-label="タイマーURLをコピー"
+            className="flex w-full items-center gap-1.5 rounded-lg border bg-muted/40 p-1.5 text-left transition-colors hover:bg-muted/70 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <span className="flex-1 truncate px-1 text-xs" title={url}>
+              {url || "ルーム作成後にURLが表示されます"}
+            </span>
+            <span
+              aria-hidden
+              className="flex size-7 items-center justify-center rounded-md bg-secondary text-secondary-foreground"
+            >
+              {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
+            </span>
+          </button>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
