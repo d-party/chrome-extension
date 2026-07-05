@@ -186,16 +186,6 @@ const layoutDmmSidebar = (): void => {
   const player = getPlayerContainer();
   const width = sidebarWidth(sidebarStore.getSnapshot());
 
-  // CSS var + 開閉クラスは固定コントローラの右寄せ（dmm-player.css）に使う。
-  document.documentElement.style.setProperty(
-    "--d-party-sidebar-width",
-    `${width}px`,
-  );
-  document.documentElement.classList.toggle(
-    "d-party-dmm-sidebar-open",
-    width > 0,
-  );
-
   if (!host || !player) return;
   normalizeSidebarScale(host);
 
@@ -223,15 +213,6 @@ const layoutDmmSidebar = (): void => {
   host.style.right = "auto";
   host.style.bottom = "auto";
   host.style.height = `${rect.height || window.innerHeight}px`;
-
-  // 固定コントローラ（下部バー等）の右端を「詰めたあとの動画の右端(rect.right)」へ
-  // 合わせるための、ビューポート右からのオフセット。--d-party-sidebar-width だと
-  // スクロールバー等の差で動画とわずかにズレるため、実測の右端を基準にする
-  // （clientWidth も rect もスクロールバーを除く座標なので整合する）。
-  document.documentElement.style.setProperty(
-    "--d-party-player-right",
-    `${Math.max(0, Math.round(document.documentElement.clientWidth - rect.right))}px`,
-  );
 };
 layoutDmmSidebar();
 sidebarStore.subscribe(layoutDmmSidebar);
@@ -314,8 +295,8 @@ function addControlButtons(): void {
   const mount = (anchor: Element): void => {
     // DMM: 再生ボタンは grid（grid-flow-col）の 1 セル（.group）に入っている。
     // そのボタン自体の前（セル内の block）に差し込むと display:contents の子が縦積み
-    // になるのでセルをアンカーにし（マウント後に grid 末尾へ移動する）、CSS で
-    // ホストを flex 行にして他コントロールと同じ行に横並びで入れる（dmm-player.css）。
+    // になるのでセルをアンカーにして一旦マウントし、その後に時間/画質表示の flex へ
+    // 移動する。CSS でホストを flex 行にして横並びで入れる（dmm-player.css）。
     const cell = anchor.closest("div.group") ?? anchor;
     mountPlayerControls({
       anchor: cell,
@@ -338,12 +319,17 @@ function addControlButtons(): void {
         },
       },
     });
-    // 既存の左寄せボタン（play/10←/10→/音量）が並ぶ grid の末尾へ移動し、
-    // 音量ボタンのすぐ右に横並びで表示する（mountPlayerControls の既定挿入は
-    // アンカーの直前＝一番左になるため）。
+    // リアクションを「秒数/画質表示の右」に出す。時間/画質は左クラスタ 2 列目の
+    // flex（`<div class="flex p-2 ...">08:15 / 24:00 ... AUTO(1080p)</div>`）なので、
+    // その flex に append すれば “AUTO(1080p)” の右に横並びで入る（mountPlayerControls の
+    // 既定挿入はアンカー直前＝一番左なので移動する）。
     const controls = document.getElementById("d-party-player-controls");
-    const leftGrid = cell.parentElement;
-    if (controls && leftGrid) leftGrid.appendChild(controls);
+    const buttonGrid = cell.parentElement; // <div class="grid grid-flow-col gap-2">
+    const timeDisplay = buttonGrid?.nextElementSibling; // 時間/画質の <div class="flex p-2 ...">
+    if (controls) {
+      if (timeDisplay instanceof HTMLElement) timeDisplay.appendChild(controls);
+      else buttonGrid?.appendChild(controls);
+    }
   };
 
   const find = (): Element | null => {

@@ -1,25 +1,14 @@
 /*
- * DMM TV 再生ページ専用のレイアウト調整（固定コントローラの右寄せのみ）。
+ * DMM TV 再生ページ専用のスタイル（注入した操作ボタンの見た目のみ）。
  *
  * サイドバー本体の配置と「プレイヤーぶんだけ右に余白を空ける」処理は content script
- * （dmm/player/index.ts の layoutDmmSidebar）が JS で行う。プレイヤー領域を実測して
- * position:absolute で右横に並べ、右パディングもプレイヤー要素だけに入れるため、
- * 動画下の説明・エピソード一覧などページ下部の内容には一切影響しない（サイドバーも
- * プレイヤーの高さぶんだけ表示され、スクロールで一緒に流れて消える）。
+ * （dmm/player/index.ts の layoutDmmSidebar）が JS で行う。幅詰めは #vodWrapper の width 縮小。
  *
- * この CSS は JS で扱いづらい position:fixed のプレイヤーコントローラ（上部/下部バー）
- * だけを担当する。ビューポート基準でプレイヤー要素の padding を無視するため、右端を
- * サイドバー幅ぶん内側へ寄せて、動画コントロールがサイドバーの裏に隠れないようにする
- * （`w-full` を left/right アンカー + width:auto で上書き）。サイドバー幅と開閉は
- * content script が `--d-party-sidebar-width` と `html.d-party-dmm-sidebar-open` で伝える。
+ * 動画・上部ヘッダー（absolute; w-full）・下部コントローラ（fixed だが transform 祖先により
+ * #vodWrapper が包含ブロック）はいずれも #vodWrapper 配下なので、#vodWrapper の width を
+ * 詰めれば一緒に縮む。したがってコントローラを個別に右寄せする必要はない
+ * （以前は viewport 基準と誤認して right シフトを当て、サイドバー幅ぶんの隙間が出ていた）。
  */
-
-html.d-party-dmm-sidebar-open .z-player-top-controller,
-html.d-party-dmm-sidebar-open .z-player-bottom-controller {
-  left: 0 !important;
-  right: var(--d-party-player-right, 0px) !important;
-  width: auto !important;
-}
 
 /*
  * 注入した sync + リアクションボタン（#d-party-player-controls）の見た目。
