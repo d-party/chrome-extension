@@ -33,6 +33,17 @@ export function findDmmVideo(): HTMLVideoElement | null {
   return null;
 }
 
+/**
+ * DMM のエピソード識別子。再生ページ URL は `?season=..&content=..` の**両方**で
+ * 再生対象が決まるため、part_id には `season/content` をまとめて載せる（join 時に
+ * バックエンドがこれを分解して再生ページの URL を復元する）。season が無ければ content のみ。
+ */
+export function dmmPartId(): string {
+  const season = getParam("season");
+  const content = getParam("content") ?? "";
+  return season ? `${season}/${content}` : content;
+}
+
 export class PlayerControllerDmm implements PlayerController {
   constructor(private readonly guard: ActionGuard) {}
 
@@ -47,8 +58,8 @@ export class PlayerControllerDmm implements PlayerController {
       src: v?.currentSrc ?? v?.getAttribute("src") ?? null,
       paused: v?.paused ?? true,
       rate: v?.playbackRate ?? 1,
-      // DMM は URL の `content` がエピソード（動画）を一意に識別する。
-      part_id: getParam("content") ?? "",
+      // DMM は `season/content` でエピソードを識別する（join 復元のため両方を載せる）。
+      part_id: dmmPartId(),
     };
   }
 

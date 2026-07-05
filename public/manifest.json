@@ -47,7 +47,9 @@
     {
       "matches": [
         "https://d-party.net/anime-store/lobby/*",
-        "http://localhost/anime-store/lobby/*"
+        "http://localhost/anime-store/lobby/*",
+        "https://d-party.net/dmm-tv/lobby/*",
+        "http://localhost/dmm-tv/lobby/*"
       ],
       "js": ["js/content-version.js"],
       "css": ["css/style.css"]

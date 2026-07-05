@@ -17,7 +17,7 @@ import { mountSidebar } from "../../party/react/mountSidebar";
 import { mountPlayerControls } from "../../party/react/PlayerControls";
 import type { SidebarTab } from "../../party/react/sidebarStore";
 import { ReactionViewReact } from "../../party/ReactionViewReact";
-import { PlayerControllerDmm, findDmmVideo } from "./PlayerControllerDmm";
+import { PlayerControllerDmm, dmmPartId, findDmmVideo } from "./PlayerControllerDmm";
 
 /**
  * Content script for the DMM TV playback page
@@ -87,7 +87,7 @@ const { store: sidebarStore, controller: sidebarController } = mountSidebar({
     addControlButtons();
     bindPlayerEvents();
     session.createRoom(
-      getParam("content") ?? "",
+      dmmPartId(),
       shareTitle(),
       sidebarStore.getSnapshot().draftRoomSettings,
     );
