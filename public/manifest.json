@@ -62,7 +62,7 @@
     {
       "matches": ["https://tv.dmm.com/vod/playback/on-demand/*"],
       "js": ["js/content-dmm-player.js"],
-      "css": ["css/player.css", "css/style.css"]
+      "css": ["css/style.css", "css/dmm-player.css"]
     }
   ],
   "web_accessible_resources": [

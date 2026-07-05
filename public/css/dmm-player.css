@@ -1,0 +1,24 @@
+/*
+ * DMM TV 再生ページ専用のレイアウト調整。
+ *
+ * d-party のサイドバーは DMM に `.videoWrapper` が無いため固定オーバーレイ
+ * （position:fixed; right:0）で表示される。そのままだとフルビューポートの
+ * プレイヤー（w-full / h-dvh / fixed のコントローラ）の右側に被る。
+ *
+ * サイドバーを開いている間だけ、プレイヤーの主要コンテナを左へ詰めて右側に
+ * サイドバー幅ぶんの余白を確保する（= 動画の横にサイドバーが並ぶ）。サイドバー幅は
+ * content script が `--d-party-sidebar-width` に、開閉は `html.d-party-dmm-sidebar-open`
+ * で伝える。DMM のクラストークン（#main-layout / z-player-*-controller）に依存するため、
+ * 実 DOM 変更時はここを調整する。
+ */
+
+html.d-party-dmm-sidebar-open #main-layout {
+    width: calc(100vw - var(--d-party-sidebar-width, 0px)) !important;
+}
+
+/* 上部・下部コントローラはビューポート基準（下部は position:fixed）なので、
+   個別に幅を詰めて左寄せのままにする。 */
+html.d-party-dmm-sidebar-open .z-player-top-controller,
+html.d-party-dmm-sidebar-open .z-player-bottom-controller {
+    width: calc(100vw - var(--d-party-sidebar-width, 0px)) !important;
+}

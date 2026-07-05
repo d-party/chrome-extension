@@ -13,11 +13,15 @@ import {
 import { PartyWebSocketClient } from "@/infrastructure/ws/PartyWebSocketClient";
 
 import { getParam } from "../../dom/utils";
-import { mountSidebar } from "../../party/react/mountSidebar";
+import { mountSidebar, sidebarWidth } from "../../party/react/mountSidebar";
 import { mountPlayerControls } from "../../party/react/PlayerControls";
 import type { SidebarTab } from "../../party/react/sidebarStore";
 import { ReactionViewReact } from "../../party/ReactionViewReact";
-import { PlayerControllerDmm, dmmPartId, findDmmVideo } from "./PlayerControllerDmm";
+import {
+  PlayerControllerDmm,
+  dmmPartId,
+  findDmmVideo,
+} from "./PlayerControllerDmm";
 
 /**
  * Content script for the DMM TV playback page
@@ -127,6 +131,23 @@ const session = new RoomSession({
 
 sidebarStore.setMode(mode);
 if (mode === "join") sidebarStore.setJoined(true);
+
+// DMM は React SPA でプレイヤーがビューポート基準（w-full/h-dvh/fixed）なので、DOM を
+// 再配置せず CSS だけでレイアウトを調整する。サイドバーを開いている間、プレイヤー領域を
+// 左へ詰めて右にサイドバー幅ぶんの余白を作り、動画に被らないようにする（dmm-player.css）。
+const applyDmmLayout = (): void => {
+  const width = sidebarWidth(sidebarStore.getSnapshot());
+  document.documentElement.style.setProperty(
+    "--d-party-sidebar-width",
+    `${width}px`,
+  );
+  document.documentElement.classList.toggle(
+    "d-party-dmm-sidebar-open",
+    width > 0,
+  );
+};
+applyDmmLayout();
+sidebarStore.subscribe(applyDmmLayout);
 
 let playerEventsBound = false;
 
