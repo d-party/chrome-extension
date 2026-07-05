@@ -56,6 +56,11 @@
       "matches": ["https://tv.dmm.com/vod/detail/*"],
       "js": ["js/content-dmm-detail.js"],
       "css": ["css/style.css"]
+    },
+    {
+      "matches": ["https://tv.dmm.com/vod/playback/on-demand/*"],
+      "js": ["js/content-dmm-player.js"],
+      "css": ["css/player.css", "css/style.css"]
     }
   ],
   "web_accessible_resources": [
@@ -65,6 +70,10 @@
         "https://animestore.docomo.ne.jp/*",
         "https://anime.dmkt-sp.jp/*"
       ]
+    },
+    {
+      "resources": ["assets/*", "js/sidebar-style.css"],
+      "matches": ["https://tv.dmm.com/*"]
     }
   ]
 }

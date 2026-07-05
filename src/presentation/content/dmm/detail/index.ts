@@ -1,4 +1,4 @@
-import { makeFontFace } from "../../dom/utils";
+import { getParam, makeFontFace } from "../../dom/utils";
 import { iconButton } from "../../dom/iconButton";
 
 /**
@@ -66,15 +66,32 @@ function findActionRow(): HTMLElement | null {
 }
 
 /**
- * 現在の作品でパーティールーム作成を開始する視聴 URL を新規タブで開く。
+ * 現在の作品でパーティールーム作成を開始する。DMM の再生ページ
+ * （`/vod/playback/on-demand/?season=..&content=..`）へ `party=create` を付けて
+ * 新規タブで開く。再生ページの content script（`content/dmm/player`）が
+ * `party=create` を読み取ってルーム作成 UI を出す。
  *
- * 詳細ページの URL（`?season=..&content=..`）を保ったまま `party=create` を付与する。
- * 実際にパーティーを起動するプレイヤーページ側の処理は PR2 で実装する。
+ * season/content は詳細ページ URL から引き継ぐ。content が取れない場合は最初の
+ * エピソードリンクから補完する。
  */
 function openCreatePartyInNewTab(): void {
-  const url = new URL(window.location.href);
+  const season = getParam("season");
+  const content = getParam("content") ?? firstEpisodeContentId();
+  const url = new URL("/vod/playback/on-demand/", window.location.origin);
+  if (season) url.searchParams.set("season", season);
+  if (content) url.searchParams.set("content", content);
   url.searchParams.set("party", "create");
   window.open(url.href, "_blank", "noopener");
+}
+
+/** 詳細ページの最初のエピソードリンク（`?...&content=..`）から content id を得る。 */
+function firstEpisodeContentId(): string | null {
+  const link = document.querySelector<HTMLAnchorElement>(
+    'a[href*="/vod/detail/"][href*="content="]',
+  );
+  if (!link) return null;
+  const href = link.getAttribute("href") ?? "";
+  return getParam("content", new URL(href, window.location.origin).href);
 }
 
 /** Run `fn` now if the document has finished loading, otherwise on `load`. */

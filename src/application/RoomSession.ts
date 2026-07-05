@@ -30,6 +30,12 @@ export interface RoomSessionDeps {
   settings: SettingsProvider;
   guard: ActionGuard;
   stats: StatsRecorder;
+  /**
+   * 共有リンク（ロビー）の解決先ベース URL。`<endpoint>/<room_id>` を共有リンクとして
+   * サイドバーに表示する。省略時は dアニメストア用（後方互換）。DMM TV は
+   * `DMM_REDIRECT_ENDPOINT` を渡してサービスごとの正しいロビーへ誘導する。
+   */
+  redirectEndpoint?: string;
 }
 
 const SERVER_DISCONNECTED = "サーバーとの通信が終了";
@@ -93,8 +99,13 @@ export class RoomSession {
   userId = "";
   roomId = "";
 
+  // 共有リンクのベース URL。deps 省略時は dアニメストア用（後方互換）。
+  private readonly redirectEndpoint: string;
+
   constructor(deps: RoomSessionDeps) {
     this.deps = deps;
+    this.redirectEndpoint =
+      deps.redirectEndpoint ?? ANIMESTORE_REDIRECT_ENDPOINT;
   }
 
   get inRoom(): boolean {
@@ -427,7 +438,7 @@ export class RoomSession {
         this.deps.stats.roomCreated();
         this.startHeartbeat();
         sidebar.setSelfUserId(this.userId);
-        sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
+        sidebar.setShareLink(this.redirectEndpoint + this.roomId);
         sidebar.setJoined(true);
         sidebar.setConnectionStatus("connected");
         sidebar.showSharePanel();
@@ -454,7 +465,7 @@ export class RoomSession {
         this.startConnectionTracking();
         this.deps.stats.roomJoined();
         sidebar.setSelfUserId(this.userId);
-        sidebar.setShareLink(ANIMESTORE_REDIRECT_ENDPOINT + this.roomId);
+        sidebar.setShareLink(this.redirectEndpoint + this.roomId);
         sidebar.setJoined(true);
         sidebar.setConnectionStatus("connected");
         notifier.success("ルームに参加");

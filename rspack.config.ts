@@ -19,6 +19,8 @@ const config: Configuration = {
     "content-version": src("presentation/content/version/index.ts"),
     // DMM TV の作品詳細ページにパーティー作成アイコンを注入する content script。
     "content-dmm-detail": src("presentation/content/dmm/detail/index.ts"),
+    // DMM TV の再生ページで同時視聴（プレイヤー同期 + サイドバー）を行う content script。
+    "content-dmm-player": src("presentation/content/dmm/player/index.ts"),
     // Popup (React + shadcn/ui).
     popup: src("presentation/popup/index.tsx"),
     // Sidebar styles, emitted as a standalone CSS file and injected into the
