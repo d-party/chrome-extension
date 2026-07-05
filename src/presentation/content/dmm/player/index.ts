@@ -223,6 +223,15 @@ const layoutDmmSidebar = (): void => {
   host.style.right = "auto";
   host.style.bottom = "auto";
   host.style.height = `${rect.height || window.innerHeight}px`;
+
+  // 固定コントローラ（下部バー等）の右端を「詰めたあとの動画の右端(rect.right)」へ
+  // 合わせるための、ビューポート右からのオフセット。--d-party-sidebar-width だと
+  // スクロールバー等の差で動画とわずかにズレるため、実測の右端を基準にする
+  // （clientWidth も rect もスクロールバーを除く座標なので整合する）。
+  document.documentElement.style.setProperty(
+    "--d-party-player-right",
+    `${Math.max(0, Math.round(document.documentElement.clientWidth - rect.right))}px`,
+  );
 };
 layoutDmmSidebar();
 sidebarStore.subscribe(layoutDmmSidebar);
@@ -304,10 +313,9 @@ function bindPlayerEvents(): void {
 function addControlButtons(): void {
   const mount = (anchor: Element): void => {
     // DMM: 再生ボタンは grid（grid-flow-col）の 1 セル（.group）に入っている。
-    // そのボタン自体の前（セル内の block）に差し込むと display:contents の子が
-    // 縦積みになるので、セル（.group）ごとの左隣に独立セルとして差し込む。
-    // こうすれば grid の横並びに乗り、CSS でホストを flex 行にすればリアクションも
-    // 他コントロールと同じ行に横並びで入る（dmm-player.css）。
+    // そのボタン自体の前（セル内の block）に差し込むと display:contents の子が縦積み
+    // になるのでセルをアンカーにし（マウント後に grid 末尾へ移動する）、CSS で
+    // ホストを flex 行にして他コントロールと同じ行に横並びで入れる（dmm-player.css）。
     const cell = anchor.closest("div.group") ?? anchor;
     mountPlayerControls({
       anchor: cell,
@@ -330,6 +338,12 @@ function addControlButtons(): void {
         },
       },
     });
+    // 既存の左寄せボタン（play/10←/10→/音量）が並ぶ grid の末尾へ移動し、
+    // 音量ボタンのすぐ右に横並びで表示する（mountPlayerControls の既定挿入は
+    // アンカーの直前＝一番左になるため）。
+    const controls = document.getElementById("d-party-player-controls");
+    const leftGrid = cell.parentElement;
+    if (controls && leftGrid) leftGrid.appendChild(controls);
   };
 
   const find = (): Element | null => {

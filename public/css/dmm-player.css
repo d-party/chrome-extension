@@ -17,7 +17,7 @@
 html.d-party-dmm-sidebar-open .z-player-top-controller,
 html.d-party-dmm-sidebar-open .z-player-bottom-controller {
   left: 0 !important;
-  right: var(--d-party-sidebar-width, 0px) !important;
+  right: var(--d-party-player-right, 0px) !important;
   width: auto !important;
 }
 
