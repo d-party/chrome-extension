@@ -327,8 +327,15 @@ function addControlButtons(): void {
     const buttonGrid = cell.parentElement; // <div class="grid grid-flow-col gap-2">
     const timeDisplay = buttonGrid?.nextElementSibling; // 時間/画質の <div class="flex p-2 ...">
     if (controls) {
-      if (timeDisplay instanceof HTMLElement) timeDisplay.appendChild(controls);
-      else buttonGrid?.appendChild(controls);
+      if (timeDisplay instanceof HTMLElement) {
+        // 時間/画質 flex は items-center を持たないため、背の高いリアクション（50px）を
+        // 入れると行が高くなり、テキストが上付きになる。縦中央寄せにして時間・画質・
+        // リアクションを揃える。
+        timeDisplay.style.alignItems = "center";
+        timeDisplay.appendChild(controls);
+      } else {
+        buttonGrid?.appendChild(controls);
+      }
     }
   };
 
