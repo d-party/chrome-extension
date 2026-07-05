@@ -134,8 +134,10 @@ if (mode === "join") sidebarStore.setJoined(true);
 
 // DMM は React SPA でプレイヤーがビューポート基準（w-full / h-dvh / fixed のコントローラ）
 // なので DOM は再配置しない。サイドバーは「プレイヤー領域の右横」にだけ並べたいので:
-//   1) プレイヤー要素だけに右パディングを入れて動画を左へ詰める（html 全体ではなく
-//      プレイヤーだけを詰めるので、動画下の説明・エピソード一覧は全幅のまま影響しない）。
+//   1) プレイヤー要素だけ幅を詰めて動画を左へ寄せる（html 全体ではなくプレイヤーだけを
+//      詰めるので、動画下の説明・エピソード一覧は全幅のまま影響しない）。padding ではなく
+//      width を使うのは、ヘッダー等の overlay が position:absolute; w-full で #vodWrapper の
+//      padding box を参照し padding では縮まないため（width なら abspos の overlay も縮む）。
 //   2) サイドバー本体を position:absolute でプレイヤーの document 座標に合わせて置く
 //      （fixed だとスクロールしても付いてきて下の要素にも被るため、absolute にして
 //       プレイヤーの高さぶんだけ表示し、スクロールで一緒に流れて消えるようにする）。
@@ -161,9 +163,16 @@ const layoutDmmSidebar = (): void => {
   const player = getPlayerContainer();
   if (!host || !player) return;
 
-  // 1) プレイヤーだけ右に余白（border-box なので外形サイズ＝高さ/位置は不変）。
+  // 1) プレイヤーだけ幅を詰める（border-box）。abspos; w-full のヘッダー overlay も
+  //    #vodWrapper の幅を参照するので width なら一緒に縮む（padding だと縮まない）。
   player.style.boxSizing = "border-box";
-  player.style.paddingRight = width > 0 ? `${width}px` : "";
+  if (width > 0) {
+    player.style.width = `calc(100% - ${width}px)`;
+    player.style.right = "auto"; // abspos で right:0 のときも左寄せを保つ
+  } else {
+    player.style.width = "";
+    player.style.right = "";
+  }
 
   // 2) サイドバーをプレイヤーの document 座標へ absolute で配置（スクロール追従しない）。
   const rect = player.getBoundingClientRect();
