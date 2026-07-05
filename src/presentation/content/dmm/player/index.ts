@@ -147,39 +147,53 @@ const getPlayerContainer = (): HTMLElement | null =>
   findDmmVideo()?.parentElement ??
   null;
 
-// DMM のルート <html> font-size が 16px でないと、サイドバー本体（Tailwind v4）の
-// rem/spacing 基準がズレて w-80 などが細くなる（rem・spacing は Shadow DOM でも
-// ドキュメントルートの font-size を参照する）。対策を Shadow DOM へ一度だけ注入する:
-//   - `--spacing` を 4px（= 0.25rem@16px）に固定。Tailwind v4 の幅/余白/アイコン等は
-//     `calc(var(--spacing) * n)` なので、これでルート font-size に依存しなくなり w-80 が
-//     本来の 320px になる（16px のページでは 0.25rem=4px で従来どおり）。カスタム
-//     プロパティは Shadow 境界を越えて継承されるため、host に載せれば中身へ効く。
-//   - 保険として w-80 のルートを width:100% にしてホスト幅を満たす（万一 w-80 が
-//     spacing 由来でなく固定 rem でも、ホスト幅に合わせる）。
+// DMM のルート <html> font-size が 16px でないと、Shadow DOM 内 Tailwind v4 の
+// rem/spacing 基準がズレて UI が小さくなる（rem・spacing は Shadow DOM でも
+// ドキュメントルートの font-size を参照）。host に px 値の CSS 変数を載せて 16px 相当へ
+// 固定する（カスタムプロパティは Shadow 境界を越えて継承）。サイドバーとトースト
+// 双方のホストに適用する。body には載せない（DMM 自身の Tailwind --spacing を壊さないため）。
+const SHADOW_SCALE_VARS: Record<string, string> = {
+  "--spacing": "4px", // = 0.25rem@16px。幅/余白/アイコン（size-*）等 spacing スケール
+  "--text-xs": "12px",
+  "--text-sm": "14px",
+  "--text-base": "16px",
+  "--text-lg": "18px",
+  "--text-xl": "20px",
+  "--text-2xl": "24px",
+};
+const applyShadowScale = (host: HTMLElement): void => {
+  for (const [name, value] of Object.entries(SHADOW_SCALE_VARS)) {
+    host.style.setProperty(name, value);
+  }
+};
+
 let sidebarNormalized = false;
 const normalizeSidebarScale = (host: HTMLElement): void => {
   if (sidebarNormalized || !host.shadowRoot) return;
   sidebarNormalized = true;
-  // spacing 系（幅/余白/アイコン size-* 等）を 16px 相当の px へ固定。
-  host.style.setProperty("--spacing", "4px");
-  // フォントサイズ（text-*）は Tailwind v4 で `var(--text-*)`（= rem）を使うため、
-  // spacing とは別に px（16px 相当）へ固定する。これをしないと DMM の小さいルート
-  // font-size で文字だけ小さいままになる（幅は直っても中身が縮んで見える）。
-  const textVars: Record<string, string> = {
-    "--text-xs": "12px",
-    "--text-sm": "14px",
-    "--text-base": "16px",
-    "--text-lg": "18px",
-    "--text-xl": "20px",
-    "--text-2xl": "24px",
-  };
-  for (const [name, value] of Object.entries(textVars)) {
-    host.style.setProperty(name, value);
-  }
+  applyShadowScale(host);
+  // 保険としてサイドバー本体（w-80）を width:100% にしてホスト幅を満たす
+  // （万一 w-80 が spacing 由来でなく固定 rem でも、ホスト幅に合わせる）。
   const style = document.createElement("style");
   style.textContent = `[class~="w-80"]{width:100%!important;}`;
   host.shadowRoot.appendChild(style);
 };
+
+// トーストのホスト（#d-party-toast-host）は初回トースト時に遅延生成されるので、
+// body への追加を監視して同じスケール補正を当てる（トーストも Shadow DOM の
+// Tailwind なので、未補正だと dアニメより小さく見える）。
+const normalizeToastHost = (): void => {
+  const toastHost = document.getElementById("d-party-toast-host");
+  if (toastHost) applyShadowScale(toastHost);
+};
+normalizeToastHost();
+const toastHostObserver = new MutationObserver(() => {
+  if (document.getElementById("d-party-toast-host")) {
+    normalizeToastHost();
+    toastHostObserver.disconnect();
+  }
+});
+toastHostObserver.observe(document.body, { childList: true });
 
 const layoutDmmSidebar = (): void => {
   const host = document.getElementById("d-party-sidebar-host");
@@ -266,14 +280,27 @@ function bindPlayerEvents(): void {
   playerEventsBound = true;
 
   const active = () => guard.available && session.inRoom;
+  // ルームへ操作を通知し（他の参加者へ operation_notification）、自己通知が無効なら
+  // 送信者にもトーストを出す（dアニメの announce と同じ）。プレイヤーの sync 自体は
+  // sendVideoOperation が担うので、ここでは「通知」だけを担当する。
+  const announce = (operation: string) => {
+    session.sendActionNotification(operation);
+    if (!currentSettings.selfNotification)
+      session.notifySentOperation(operation);
+  };
 
   v.addEventListener("playing", () => {
-    if (active()) session.sendVideoOperation("playing");
+    if (active()) {
+      session.sendVideoOperation("playing");
+      announce("play");
+    }
     guard.allow();
   });
   v.addEventListener("pause", () => {
-    if (active() && v.duration !== v.currentTime)
+    if (active() && v.duration !== v.currentTime) {
       session.sendVideoOperation("pause");
+      announce("stop");
+    }
     guard.allow();
   });
   v.addEventListener("seeking", () => {
