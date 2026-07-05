@@ -28,7 +28,7 @@ export class ReactionViewReact implements ReactionView {
       (document.getElementsByClassName("videoWrapper")[0] as
         | HTMLElement
         | undefined) ?? null,
-  ) {}
+  ) { }
 
   play(id: string, opts?: ReactionPlayOptions): void {
     const push: ReactionPush = {
