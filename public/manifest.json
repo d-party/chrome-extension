@@ -55,7 +55,8 @@
       "css": ["css/style.css"]
     },
     {
-      "matches": ["https://tv.dmm.com/vod/detail/*"],
+      "matches": ["https://tv.dmm.com/*"],
+      "exclude_matches": ["https://tv.dmm.com/vod/playback/on-demand/*"],
       "js": ["js/content-dmm-detail.js"],
       "css": ["css/style.css"]
     },

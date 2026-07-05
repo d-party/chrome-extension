@@ -8,8 +8,11 @@ import { iconButton } from "../../dom/iconButton";
  * action row next to the native お気に入り / シェア buttons — mirroring the
  * "create party" icon the store decorator adds to each dアニメストア episode.
  *
- * DMM TV は React の SPA でルート遷移が動的（ヘッダ/エピソード一覧が後から差し込まれる）
- * なので、store/index.ts と同様に MutationObserver で冪等に再注入する。
+ * DMM TV は React の SPA。トップ/一覧から詳細ページへ**クライアント遷移**した場合、
+ * content script は再実行されない。そのため manifest の match を `tv.dmm.com/*` へ広げ
+ * （再生ページは exclude）、どの DMM ページでもロード時に常騐させておき、SPA 遷移で
+ * 詳細ページのアクション行が現れたら MutationObserver で冪等に注入する（詳細ページ
+ * 以外では pathname ガードで何もしない）。
  *
  * NOTE（PR2 で確定）: 実際の再生プレイヤーの同期（PlayerControllerDmm / SiteAdapter）と、
  * 詳細→プレイヤー遷移後にパーティーを起動する content script は、DMM 再生ページの DOM
@@ -19,19 +22,26 @@ import { iconButton } from "../../dom/iconButton";
 
 const DECORATED_ATTR = "data-dparty-dmm-party";
 
+/** 詳細ページ（/vod/detail）のときだけボタンを出す（match を広げたので URL で絞る）。 */
+function isDetailPage(): boolean {
+  return window.location.pathname.startsWith("/vod/detail");
+}
+
 makeFontFace();
 ready(main);
 
 function main(): void {
   decorate();
-  // ヘッダ/アクション行は SPA で後から現れる・作品遷移で作り替わるため、body の
-  // 変化を監視して冪等に再注入する（既に注入済みならスキップ）。
+  // ヘッダ/アクション行は SPA で後から現れる・作品遷移で作り替わる・トップ→詳細へ
+  // クライアント遷移するなどで変化するため、body の変化を監視して冪等に再注入する
+  // （既に注入済みならスキップ、詳細ページでなければ何もしない）。
   const observer = new MutationObserver(() => decorate());
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
 /** アクション行にパーティーアイコンを一度だけ注入する。 */
 function decorate(): void {
+  if (!isDetailPage()) return;
   const row = findActionRow();
   if (!row) return;
   if (row.querySelector(`[${DECORATED_ATTR}]`)) return;
