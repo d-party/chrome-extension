@@ -2,6 +2,10 @@ import type { SidebarView } from "@/application/ports";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
 import type { HistoryEntryInput } from "@/domain/history";
 import type { User } from "@/domain/protocol";
+import {
+  type RoomSettings,
+  DEFAULT_ROOM_SETTINGS,
+} from "@/domain/roomSettings";
 
 export type SidebarTab = "share" | "history" | "users" | "control";
 
@@ -27,6 +31,10 @@ export interface SidebarState {
   /** user_id of the local user, used to mark them as "you" in the list. */
   selfUserId: string;
   history: HistoryEntry[];
+  /** サーバから通知された現在のルーム詳細設定（入室後の操作タブで表示・編集）。 */
+  roomSettings: RoomSettings;
+  /** ルーム作成前に「詳細設定」アコーディオンで組み立てる初期設定の下書き。 */
+  draftRoomSettings: RoomSettings;
 }
 
 const INITIAL_STATE: SidebarState = {
@@ -41,6 +49,8 @@ const INITIAL_STATE: SidebarState = {
   users: [],
   selfUserId: "",
   history: [],
+  roomSettings: DEFAULT_ROOM_SETTINGS,
+  draftRoomSettings: DEFAULT_ROOM_SETTINGS,
 };
 
 /**
@@ -92,6 +102,12 @@ export class SidebarStore {
   setSelfUserId(selfUserId: string): void {
     this.patch({ selfUserId });
   }
+  setRoomSettings(roomSettings: RoomSettings): void {
+    this.patch({ roomSettings });
+  }
+  setDraftRoomSettings(draftRoomSettings: RoomSettings): void {
+    this.patch({ draftRoomSettings });
+  }
   show(): void {
     this.patch({ visible: true });
   }
@@ -119,6 +135,8 @@ export class SidebarStore {
       users: [],
       selfUserId: "",
       history: [],
+      roomSettings: DEFAULT_ROOM_SETTINGS,
+      draftRoomSettings: DEFAULT_ROOM_SETTINGS,
     });
   }
 
@@ -137,7 +155,7 @@ export class SidebarStore {
  * so RoomSession stays unaware of React.
  */
 export class SidebarController implements SidebarView {
-  constructor(private readonly store: SidebarStore) { }
+  constructor(private readonly store: SidebarStore) {}
 
   setShareLink(roomUrl: string): void {
     this.store.setShareLink(roomUrl);
@@ -159,6 +177,9 @@ export class SidebarController implements SidebarView {
   }
   updateUserList(users: User[]): void {
     this.store.updateUsers(users);
+  }
+  setRoomSettings(settings: RoomSettings): void {
+    this.store.setRoomSettings(settings);
   }
   hideSidebar(): void {
     this.store.hide();

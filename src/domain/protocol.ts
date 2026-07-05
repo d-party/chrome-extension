@@ -122,6 +122,19 @@ export interface ReactionMessage {
   request_id: number;
 }
 
+/**
+ * ルーム詳細設定の更新要求（オーナー限定。ホスト以外が送っても無視される）。
+ * ルーム作成直後の初期設定・入室後の変更の両方で使う。旧バックエンドはこの
+ * action を知らず無視するため後方互換（設定が効かないだけで通常動作は維持）。
+ */
+export interface UpdateSettingMessage {
+  action: "update_setting";
+  one_way: boolean;
+  owner_leave_delete: boolean;
+  disable_reaction: boolean;
+  request_id: number;
+}
+
 export type OutgoingMessage =
   | CreateRoomMessage
   | JoinRoomMessage
@@ -132,7 +145,8 @@ export type OutgoingMessage =
   | LeaveMessage
   | UserListRequestMessage
   | DeleteRoomMessage
-  | ReactionMessage;
+  | ReactionMessage
+  | UpdateSettingMessage;
 
 // ---------------------------------------------------------------------------
 // Incoming messages (server -> client).
@@ -205,6 +219,17 @@ export interface ReactionEvent {
   user?: User;
 }
 
+/**
+ * ルーム詳細設定の通知（サーバ push）。ルーム作成/参加時と、オーナーによる更新時に
+ * ルーム全員へ配信される。旧バックエンドは送らないため、未受信なら既定値（false）扱い。
+ */
+export interface RoomSettingEvent {
+  action: "room_setting";
+  one_way?: boolean;
+  owner_leave_delete?: boolean;
+  disable_reaction?: boolean;
+}
+
 export type IncomingMessage =
   | VideoOperationEvent
   | CreateEvent
@@ -216,4 +241,5 @@ export type IncomingMessage =
   | SyncRequestEvent
   | SyncResponseEvent
   | OperationNotificationEvent
-  | ReactionEvent;
+  | ReactionEvent
+  | RoomSettingEvent;

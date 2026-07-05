@@ -35,6 +35,24 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.637 0.237 25.331);
+
+  /*
+   * Tailwind v4 の transform ユーティリティ（translate/scale/skew/3D rotate）は
+   * `translate: var(--tw-translate-x) var(--tw-translate-y)` のように合成変数へ依存し、
+   * 未指定分は `@property` の `initial-value: 0` で埋める設計になっている。ところが
+   * この CSS は Shadow DOM に注入されるため、その中の `@property` 登録は Chromium に
+   * 無視される。すると例えば `--tw-translate-y` が「無効値」になり、`translate` 宣言
+   * 全体が computed 時に破棄されて Switch のつまみが動かない（`rotate-45` は直値なので
+   * 影響を受けない）。@property の初期値に相当する既定値をここで明示して補う。
+   */
+  --tw-translate-x: 0;
+  --tw-translate-y: 0;
+  --tw-translate-z: 0;
+  --tw-rotate-x: 0;
+  --tw-rotate-y: 0;
+  --tw-rotate-z: 0;
+  --tw-skew-x: 0;
+  --tw-skew-y: 0;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -82,6 +100,33 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+
+  /*
+   * アコーディオン開閉アニメーション。Radix が content 要素に付与する
+   * `--radix-accordion-content-height`（インライン custom property なので Shadow DOM でも有効）
+   * を高さに使う。これらを定義しないと `animate-accordion-*` ユーティリティ自体が
+   * 生成されず、アコーディオンが瞬間表示になる。
+   */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-accordion-content-height);
+    }
+  }
+
+  @keyframes accordion-up {
+    from {
+      height: var(--radix-accordion-content-height);
+    }
+    to {
+      height: 0;
+    }
+  }
 }
 
 @layer base {

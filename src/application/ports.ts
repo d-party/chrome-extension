@@ -8,6 +8,7 @@ import type { PlayerOption, SyncOption, User } from "@/domain/protocol";
 import type { ConnectionStatus } from "@/domain/connectionStatus";
 import type { HistoryEntryInput } from "@/domain/history";
 import type { ReactionType } from "@/domain/reactions";
+import type { RoomSettings } from "@/domain/roomSettings";
 import type { ReactionDisplayMode, Settings } from "@/domain/settings";
 
 export interface Notifier {
@@ -37,6 +38,8 @@ export interface SidebarView {
   /** Append a structured entry to the history log. */
   addHistory(entry: HistoryEntryInput): void;
   updateUserList(users: User[]): void;
+  /** サーバから通知されたルーム詳細設定を反映する（操作タブの表示に使う）。 */
+  setRoomSettings(settings: RoomSettings): void;
   hideSidebar(): void;
   /** Reset the sidebar back to the room-creation stage (e.g. after the room is deleted). */
   resetToCreate(): void;
