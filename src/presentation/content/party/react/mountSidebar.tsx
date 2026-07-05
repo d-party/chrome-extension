@@ -1,7 +1,10 @@
 import { createRoot } from "react-dom/client";
 
 import type { RoomSettings } from "@/domain/roomSettings";
-import { HEALTH_CHECK_ENDPOINT } from "@/infrastructure/env";
+import type {
+  HealthCheckRequest,
+  HealthCheckResponse,
+} from "@/infrastructure/messages";
 import { PortalContainerContext } from "@/lib/portalContainer";
 
 import { Sidebar } from "./Sidebar";
@@ -129,6 +132,11 @@ export function mountSidebar(handlers: SidebarHandlers): MountedSidebar {
  * 失敗（ネットワークエラーまたは非 2xx）した場合はステータスを `"maintenance"` に
  * 変更してメンテナンス中の黄色バッジを表示する。接続が成功すれば WS 側が
  * `setConnectionStatus("connected")` を呼ぶため自動的に上書きされる。
+ *
+ * fetch は content script から直接行わず background service worker に委譲する。
+ * Chrome の Local Network Access により、パブリックなページ（dアニメストア）から
+ * localhost への直接 fetch はユーザー許可が無いと弾かれるため（host_permissions を
+ * 持つ background 経由なら LNA のページ許可ゲート対象外）。
  */
 function scheduleHealthCheck(store: SidebarStore): void {
   let done = false;
@@ -138,12 +146,11 @@ function scheduleHealthCheck(store: SidebarStore): void {
     if (!visible) return;
     done = true;
     unsubscribe();
-    fetch(HEALTH_CHECK_ENDPOINT, { method: "GET" })
-      .then((res) => {
-        if (!res.ok) store.setConnectionStatus("maintenance");
-      })
-      .catch(() => {
+    const request: HealthCheckRequest = { type: "healthCheck" };
+    chrome.runtime.sendMessage(request, (response?: HealthCheckResponse) => {
+      if (chrome.runtime.lastError || !response?.ok) {
         store.setConnectionStatus("maintenance");
-      });
+      }
+    });
   });
 }
