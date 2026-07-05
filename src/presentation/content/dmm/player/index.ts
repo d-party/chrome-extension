@@ -147,8 +147,35 @@ const getPlayerContainer = (): HTMLElement | null =>
   findDmmVideo()?.parentElement ??
   null;
 
+// サイドバー本体（Shadow DOM 内の React ルート）。幅を実測するために使う。
+const getSidebarRoot = (host: HTMLElement): HTMLElement | null =>
+  (host.shadowRoot?.lastElementChild
+    ?.firstElementChild as HTMLElement | null) ?? null;
+
+let sidebarResizeObserved = false;
+
 const layoutDmmSidebar = (): void => {
-  const width = sidebarWidth(sidebarStore.getSnapshot());
+  const host = document.getElementById("d-party-sidebar-host");
+  const player = getPlayerContainer();
+  const state = sidebarStore.getSnapshot();
+
+  // サイドバーの実レンダリング幅を測る。Tailwind の w-80 は rem 基準で、rem は常に
+  // ドキュメントの <html> の font-size を参照する（Shadow DOM でも同じ）。DMM のルート
+  // font-size が 16px でないと w-80 は 320px にならず、px 定数（EXPANDED_WIDTH=320）で
+  // ホスト幅・余白確保をすると「サイドバーの幅が小さい／右に空白」になる。実測値を
+  // 唯一の基準にすれば、DMM のルート font-size に関係なく破綻しない（16px なら 320 の
+  // まま = 従来どおり）。
+  const sidebarRoot = host ? getSidebarRoot(host) : null;
+  if (sidebarRoot && !sidebarResizeObserved) {
+    sidebarResizeObserved = true;
+    new ResizeObserver(layoutDmmSidebar).observe(sidebarRoot);
+  }
+  const wanted = sidebarWidth(state);
+  const width =
+    wanted > 0
+      ? Math.round(sidebarRoot?.getBoundingClientRect().width || wanted)
+      : 0;
+
   // CSS var + 開閉クラスは固定コントローラの右寄せ（dmm-player.css）に使う。
   document.documentElement.style.setProperty(
     "--d-party-sidebar-width",
@@ -159,9 +186,11 @@ const layoutDmmSidebar = (): void => {
     width > 0,
   );
 
-  const host = document.getElementById("d-party-sidebar-host");
-  const player = getPlayerContainer();
   if (!host || !player) return;
+
+  // ホスト幅を実測値へ合わせる（mountSidebar の applyWidth は px 定数 320 を入れるため、
+  // content より広いと右に空白＋画面外へはみ出して横スクロールの原因になる）。
+  host.style.width = `${width}px`;
 
   // 1) プレイヤーだけ幅を詰める（border-box）。abspos; w-full のヘッダー overlay も
   //    #vodWrapper の幅を参照するので width なら一緒に縮む（padding だと縮まない）。
@@ -175,9 +204,8 @@ const layoutDmmSidebar = (): void => {
   }
 
   // 2) サイドバーをプレイヤーの document 座標へ absolute で配置（スクロール追従しない）。
-  //    右端は `right:0`（= 包含ブロックの右端）だとスクロールバーや body の箱ぶん内側に
-  //    寄って「サイドバーの右に空白」ができるため、詰めたあとのプレイヤーの右端（rect.right）
-  //    に left を合わせる。空き幅もサイドバー幅も同じ値から導くので、隙間なく収まる。
+  //    left を「詰めたあとのプレイヤーの右端（rect.right）」に合わせる。余白幅もホスト幅も
+  //    同じ実測値から導くので、隙間・はみ出しなく収まる。
   const rect = player.getBoundingClientRect();
   host.style.position = "absolute";
   host.style.top = `${rect.top + window.scrollY}px`;
