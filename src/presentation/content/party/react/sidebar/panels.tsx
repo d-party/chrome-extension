@@ -51,39 +51,43 @@ export function CreatePanel({
   onChangeDraftSettings: (next: RoomSettingsValue) => void;
 }): React.JSX.Element {
   return (
-    <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-6">
-      <div className="flex flex-col items-center gap-3 text-center">
-        <PartyPopper className="size-8 text-red-600" aria-hidden />
-        <div>
-          <p className="text-sm font-semibold">パーティールームを作成</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            パーティーを主催して、みんなで同時に鑑賞しよう！
-          </p>
+    // 外側はスクロール枠。内側ラッパーを `m-auto` で中央に置くことで、内容が短い
+    // ときは縦中央、詳細設定を開いて縦に伸びたときはそのまま上からスクロールできる。
+    <div className="flex flex-1 flex-col overflow-y-auto p-6">
+      <div className="m-auto flex w-full flex-col gap-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <PartyPopper className="size-8 text-red-600" aria-hidden />
+          <div>
+            <p className="text-sm font-semibold">パーティールームを作成</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              パーティーを主催して、みんなで同時に鑑賞しよう！
+            </p>
+          </div>
         </div>
+
+        {/* 入室時に設定する詳細設定。トリガはプラスアイコン付きの「詳細設定」。 */}
+        <Accordion type="single" collapsible className="w-full">
+          <AccordionItem value="advanced" className="border-b-0">
+            <AccordionTrigger className="justify-center text-muted-foreground hover:text-foreground hover:no-underline">
+              <Plus
+                className="size-4 transition-transform group-data-[state=open]:rotate-45"
+                aria-hidden
+              />
+              詳細設定
+            </AccordionTrigger>
+            <AccordionContent>
+              <RoomSettings
+                value={draftSettings}
+                onChange={onChangeDraftSettings}
+              />
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
+
+        <Button onClick={onCreateRoom} className="w-full">
+          ルームを作成
+        </Button>
       </div>
-
-      {/* 入室時に設定する詳細設定。トリガはプラスアイコン付きの「詳細設定」。 */}
-      <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="advanced" className="border-b-0">
-          <AccordionTrigger className="justify-center text-muted-foreground hover:text-foreground hover:no-underline">
-            <Plus
-              className="size-4 transition-transform group-data-[state=open]:rotate-45"
-              aria-hidden
-            />
-            詳細設定
-          </AccordionTrigger>
-          <AccordionContent>
-            <RoomSettings
-              value={draftSettings}
-              onChange={onChangeDraftSettings}
-            />
-          </AccordionContent>
-        </AccordionItem>
-      </Accordion>
-
-      <Button onClick={onCreateRoom} className="w-full">
-        ルームを作成
-      </Button>
     </div>
   );
 }
