@@ -246,6 +246,7 @@ whenVideoReady((video) => {
     addControlButtons();
     bindPlayerEvents();
     session.joinRoom(getParam("room_id") ?? "");
+    armGuestAutoplayCatchUp();
   }
   // create は「ルーム作成」ボタン（onCreateRoom）で発火する。normal は何もしない。
   video.addEventListener("loadeddata", () => {
@@ -268,6 +269,28 @@ function shareTitle(): string {
     document.querySelector(SELECTORS.title)?.textContent?.trim() ||
     document.title
   );
+}
+
+/**
+ * 遷移してきたゲスト向けの自動再生ガード対策。
+ *
+ * ロビーからリダイレクトで来たゲストは、再生ページ上でまだユーザー操作をしていないため、
+ * ブラウザの自動再生ポリシーにより join 時 sync の `play()` が拒否される（DMM は中央の
+ * 「再生ボタン」を出したまま止まる）＝「一度自分でクリックしないと同期が始まらない」。
+ *
+ * そこで最初のユーザー操作（どこでもクリック/タップ）を一度だけ拾い、ホストの現在状態へ
+ * sync し直す。その操作でブラウザの user activation が付与され、直後の `play()` が通る。
+ * ゲスト自身の再生は video_operation "playing" を送るが、受信側の "playing" は `play()` を
+ * 呼ぶだけで seek しないため、ホストや他参加者を巻き戻さない（無害）。
+ */
+function armGuestAutoplayCatchUp(): void {
+  const catchUp = (): void => {
+    if (session.inRoom) session.requestSync({ manual: false });
+  };
+  window.addEventListener("pointerdown", catchUp, {
+    once: true,
+    capture: true,
+  });
 }
 
 // --- player event wiring ----------------------------------------------------
