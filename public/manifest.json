@@ -15,12 +15,11 @@
     "default_title": "d-party 設定",
     "default_popup": "popup.html"
   },
-  "permissions": [
-    "storage"
-  ],
+  "permissions": ["storage"],
   "host_permissions": [
     "https://animestore.docomo.ne.jp/*",
     "https://anime.dmkt-sp.jp/*",
+    "https://tv.dmm.com/*",
     "https://d-party.net/*",
     "http://localhost/*"
   ],
@@ -30,13 +29,8 @@
         "https://animestore.docomo.ne.jp/animestore/sc_d_pc?*",
         "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
       ],
-      "js": [
-        "js/content-party.js"
-      ],
-      "css": [
-        "css/player.css",
-        "css/style.css"
-      ]
+      "js": ["js/content-party.js"],
+      "css": ["css/player.css", "css/style.css"]
     },
     {
       "matches": [
@@ -47,32 +41,26 @@
         "https://animestore.docomo.ne.jp/animestore/sc_d_pc?*",
         "https://anime.dmkt-sp.jp/animestore/sc_d_pc?*"
       ],
-      "js": [
-        "js/content-store.js"
-      ],
-      "css": [
-        "css/style.css"
-      ]
+      "js": ["js/content-store.js"],
+      "css": ["css/style.css"]
     },
     {
       "matches": [
         "https://d-party.net/anime-store/lobby/*",
         "http://localhost/anime-store/lobby/*"
       ],
-      "js": [
-        "js/content-version.js"
-      ],
-      "css": [
-        "css/style.css"
-      ]
+      "js": ["js/content-version.js"],
+      "css": ["css/style.css"]
+    },
+    {
+      "matches": ["https://tv.dmm.com/vod/detail/*"],
+      "js": ["js/content-dmm-detail.js"],
+      "css": ["css/style.css"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "assets/*",
-        "js/sidebar-style.css"
-      ],
+      "resources": ["assets/*", "js/sidebar-style.css"],
       "matches": [
         "https://animestore.docomo.ne.jp/*",
         "https://anime.dmkt-sp.jp/*"

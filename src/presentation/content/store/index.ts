@@ -1,4 +1,5 @@
 import { getParam, makeFontFace } from "../dom/utils";
+import { iconButton } from "../dom/iconButton";
 import { ChromeStorageSettingsRepository } from "@/infrastructure/storage/ChromeStorageSettingsRepository";
 import { DEFAULT_SETTINGS, type Settings } from "@/domain/settings";
 
@@ -73,7 +74,8 @@ async function loadSettings(): Promise<void> {
 
 /** Add the play/popper icons to every not-yet-decorated episode link. */
 function decorateEpisodes(): void {
-  const itemList = document.querySelectorAll<HTMLAnchorElement>(".itemModule.list a");
+  const itemList =
+    document.querySelectorAll<HTMLAnchorElement>(".itemModule.list a");
 
   for (const item of Array.from(itemList)) {
     const href = item.getAttribute("href");
@@ -135,85 +137,8 @@ function createButton(opts: {
   });
 }
 
-/**
- * Build a shadcn-like icon <button>.
- *
- * We deliberately use a <button>, not an <a>: dアニメストア styles `.itemModule
- * .list a` directly (hover underline, `position`, its own click handlers), and
- * those rules outrank ours, so as an <a> the underline showed through and our
- * `position: relative` (needed to anchor the tooltip) was overridden. A <button>
- * matches none of those `a` selectors. Navigation is done by us in `onClick`, so
- * we don't need anchor semantics.
- */
-function iconButton(opts: {
-  icon: string;
-  className: string;
-  tooltip: string;
-  onClick: () => void;
-}): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.type = "button";
-  button.className = opts.className;
-  button.setAttribute("aria-label", opts.tooltip);
-
-  // dアニメストア attaches its own click handlers; run on the capture phase and
-  // stop the event before the page's handlers see it, so a single click acts.
-  button.addEventListener(
-    "click",
-    (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      hideTooltip();
-      opts.onClick();
-    },
-    true,
-  );
-
-  // Tooltip is rendered at document.body level (see showTooltip): a CSS pseudo
-  // tooltip is clipped by the Swiper container's overflow:hidden (the right-most
-  // card's tooltip gets cut off at the carousel edge) and can't escape via
-  // z-index, since the swiper-wrapper's transform also traps position:fixed.
-  button.addEventListener("mouseenter", () => showTooltip(button, opts.tooltip));
-  button.addEventListener("mouseleave", hideTooltip);
-  button.addEventListener("focus", () => showTooltip(button, opts.tooltip));
-  button.addEventListener("blur", hideTooltip);
-
-  // The icon font lives in an inner span so material-icons' font/size styling
-  // can't leak onto the button box (and break its layout).
-  const glyph = document.createElement("span");
-  glyph.className = "material-icons";
-  glyph.setAttribute("aria-hidden", "true");
-  glyph.textContent = opts.icon;
-  button.appendChild(glyph);
-
-  return button;
-}
-
-/**
- * A single tooltip element shared by every injected button, appended to
- * document.body so it is never clipped by the Swiper carousel's overflow:hidden
- * and always paints on top. Positioned with position:fixed using the button's
- * viewport rect.
- */
-let tooltipEl: HTMLDivElement | null = null;
-
-function showTooltip(target: HTMLElement, text: string): void {
-  if (!tooltipEl) {
-    tooltipEl = document.createElement("div");
-    tooltipEl.className = "dparty-tooltip";
-    document.body.appendChild(tooltipEl);
-  }
-  tooltipEl.textContent = text;
-  const rect = target.getBoundingClientRect();
-  // Anchor the bubble's bottom-center 8px above the button (offset via CSS transform).
-  tooltipEl.style.left = `${rect.left + rect.width / 2}px`;
-  tooltipEl.style.top = `${rect.top}px`;
-  tooltipEl.classList.add("dparty-tooltip--visible");
-}
-
-function hideTooltip(): void {
-  tooltipEl?.classList.remove("dparty-tooltip--visible");
-}
+// iconButton / showTooltip / hideTooltip は dアニメ一覧・DMM 詳細で共有するため
+// `../dom/iconButton` へ切り出した（このファイルの createButton はそれを利用する）。
 
 /**
  * Decorate the episode detail modal's 視聴する button (opened on ci_pc).
@@ -295,7 +220,8 @@ function decoratePlaylinks(): void {
         if (!partId) return;
         event.preventDefault();
         event.stopPropagation();
-        const url = new URL("sc_d_pc?partId=" + partId, window.location.href).href;
+        const url = new URL("sc_d_pc?partId=" + partId, window.location.href)
+          .href;
         window.open(url, "_blank", "noopener");
       },
       true,
