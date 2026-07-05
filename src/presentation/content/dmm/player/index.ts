@@ -147,34 +147,29 @@ const getPlayerContainer = (): HTMLElement | null =>
   findDmmVideo()?.parentElement ??
   null;
 
-// サイドバー本体（Shadow DOM 内の React ルート）。幅を実測するために使う。
-const getSidebarRoot = (host: HTMLElement): HTMLElement | null =>
-  (host.shadowRoot?.lastElementChild
-    ?.firstElementChild as HTMLElement | null) ?? null;
-
-let sidebarResizeObserved = false;
+// DMM のルート <html> font-size が 16px でないと、サイドバー本体（Tailwind v4）の
+// rem/spacing 基準がズレて w-80 などが細くなる（rem・spacing は Shadow DOM でも
+// ドキュメントルートの font-size を参照する）。対策を Shadow DOM へ一度だけ注入する:
+//   - `--spacing` を 4px（= 0.25rem@16px）に固定。Tailwind v4 の幅/余白/アイコン等は
+//     `calc(var(--spacing) * n)` なので、これでルート font-size に依存しなくなり w-80 が
+//     本来の 320px になる（16px のページでは 0.25rem=4px で従来どおり）。カスタム
+//     プロパティは Shadow 境界を越えて継承されるため、host に載せれば中身へ効く。
+//   - 保険として w-80 のルートを width:100% にしてホスト幅を満たす（万一 w-80 が
+//     spacing 由来でなく固定 rem でも、ホスト幅に合わせる）。
+let sidebarNormalized = false;
+const normalizeSidebarScale = (host: HTMLElement): void => {
+  if (sidebarNormalized || !host.shadowRoot) return;
+  sidebarNormalized = true;
+  host.style.setProperty("--spacing", "4px");
+  const style = document.createElement("style");
+  style.textContent = `[class~="w-80"]{width:100%!important;}`;
+  host.shadowRoot.appendChild(style);
+};
 
 const layoutDmmSidebar = (): void => {
   const host = document.getElementById("d-party-sidebar-host");
   const player = getPlayerContainer();
-  const state = sidebarStore.getSnapshot();
-
-  // サイドバーの実レンダリング幅を測る。Tailwind の w-80 は rem 基準で、rem は常に
-  // ドキュメントの <html> の font-size を参照する（Shadow DOM でも同じ）。DMM のルート
-  // font-size が 16px でないと w-80 は 320px にならず、px 定数（EXPANDED_WIDTH=320）で
-  // ホスト幅・余白確保をすると「サイドバーの幅が小さい／右に空白」になる。実測値を
-  // 唯一の基準にすれば、DMM のルート font-size に関係なく破綻しない（16px なら 320 の
-  // まま = 従来どおり）。
-  const sidebarRoot = host ? getSidebarRoot(host) : null;
-  if (sidebarRoot && !sidebarResizeObserved) {
-    sidebarResizeObserved = true;
-    new ResizeObserver(layoutDmmSidebar).observe(sidebarRoot);
-  }
-  const wanted = sidebarWidth(state);
-  const width =
-    wanted > 0
-      ? Math.round(sidebarRoot?.getBoundingClientRect().width || wanted)
-      : 0;
+  const width = sidebarWidth(sidebarStore.getSnapshot());
 
   // CSS var + 開閉クラスは固定コントローラの右寄せ（dmm-player.css）に使う。
   document.documentElement.style.setProperty(
@@ -187,9 +182,9 @@ const layoutDmmSidebar = (): void => {
   );
 
   if (!host || !player) return;
+  normalizeSidebarScale(host);
 
-  // ホスト幅を実測値へ合わせる（mountSidebar の applyWidth は px 定数 320 を入れるため、
-  // content より広いと右に空白＋画面外へはみ出して横スクロールの原因になる）。
+  // ホスト幅はサイドバーの本来幅（px 定数）。中身は上の normalize で必ずこの幅を満たす。
   host.style.width = `${width}px`;
 
   // 1) プレイヤーだけ幅を詰める（border-box）。abspos; w-full のヘッダー overlay も
@@ -205,7 +200,7 @@ const layoutDmmSidebar = (): void => {
 
   // 2) サイドバーをプレイヤーの document 座標へ absolute で配置（スクロール追従しない）。
   //    left を「詰めたあとのプレイヤーの右端（rect.right）」に合わせる。余白幅もホスト幅も
-  //    同じ実測値から導くので、隙間・はみ出しなく収まる。
+  //    同じ値から導くので、隙間・はみ出しなく収まる。
   const rect = player.getBoundingClientRect();
   host.style.position = "absolute";
   host.style.top = `${rect.top + window.scrollY}px`;
