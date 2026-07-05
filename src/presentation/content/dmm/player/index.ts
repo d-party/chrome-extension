@@ -74,7 +74,9 @@ const stats: StatsRecorder = {
 
 // --- composition root -------------------------------------------------------
 const guard = new ActionGuard();
-const reactions = new ReactionViewReact();
+const reactions = new ReactionViewReact(() =>
+  document.getElementById("vodWrapper"),
+);
 const player = new PlayerControllerDmm(guard);
 const client = new PartyWebSocketClient(DMM_WEBSOCKET_ENDPOINT);
 

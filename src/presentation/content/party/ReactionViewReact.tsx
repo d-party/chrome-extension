@@ -19,6 +19,17 @@ export class ReactionViewReact implements ReactionView {
   private mounted = false;
   private pending: ReactionPush[] = [];
 
+  /**
+   * `resolveContainer` はリアクションを重ねるプレイヤー要素を返す。既定は dアニメの
+   * `.videoWrapper`。DMM など別サイトでは異なる要素（例: `#vodWrapper`）を渡す。
+   */
+  constructor(
+    private readonly resolveContainer: () => HTMLElement | null = () =>
+      (document.getElementsByClassName("videoWrapper")[0] as
+        | HTMLElement
+        | undefined) ?? null,
+  ) {}
+
   play(id: string, opts?: ReactionPlayOptions): void {
     const push: ReactionPush = {
       id,
@@ -36,11 +47,9 @@ export class ReactionViewReact implements ReactionView {
 
   private ensureMounted(): void {
     if (this.mounted) return;
-    const wrapper = document.getElementsByClassName(
-      "videoWrapper",
-    )[0] as HTMLElement | undefined;
+    const wrapper = this.resolveContainer();
     if (!wrapper) return;
-    // `.videoWrapper` needs a positioning context for the absolute overlay.
+    // 重ねる要素は絶対配置オーバーレイの位置基準が必要（static なら relative にする）。
     if (getComputedStyle(wrapper).position === "static") {
       wrapper.style.position = "relative";
     }
