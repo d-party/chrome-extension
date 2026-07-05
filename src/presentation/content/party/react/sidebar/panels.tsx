@@ -156,28 +156,9 @@ export function ControlPanel({
 }): React.JSX.Element {
   return (
     <div className="flex flex-col gap-8 px-1 pb-3 pt-6">
-      {/* 入室後の詳細設定。オーナーのみ編集可能。非オーナーには現在値を read-only 表示。 */}
       <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-1.5">
-          <p className="text-sm font-semibold">詳細設定</p>
-          {isOwner ? (
-            <OwnerBadge />
-          ) : (
-            <span className="text-[11px] text-muted-foreground">
-              （オーナーのみ変更可能）
-            </span>
-          )}
-        </div>
-        <RoomSettings
-          value={roomSettings}
-          onChange={onChangeRoomSettings}
-          disabled={!isOwner}
-        />
-      </div>
-
-      <div className="flex flex-col gap-3 border-t border-border pt-6">
         <div>
-          <p className="text-sm font-semibold">パーティールームから退室</p>
+          <p className="text-sm font-semibold">ルームから退室</p>
           <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
             退室するとサイドバーが閉じます。
           </p>
@@ -207,6 +188,25 @@ export function ControlPanel({
           <HoldToDeleteButton onConfirm={onDeleteRoom} />
         </div>
       )}
+
+      {/* 入室後の詳細設定。オーナーのみ編集可能。非オーナーには現在値を read-only 表示。 */}
+      <div className="flex flex-col gap-3 border-t border-border pt-6">
+        <div className="flex items-center gap-1.5">
+          <p className="text-sm font-semibold">詳細設定</p>
+          {isOwner ? (
+            <OwnerBadge />
+          ) : (
+            <span className="text-[11px] text-muted-foreground">
+              （オーナーのみ変更可能）
+            </span>
+          )}
+        </div>
+        <RoomSettings
+          value={roomSettings}
+          onChange={onChangeRoomSettings}
+          disabled={!isOwner}
+        />
+      </div>
     </div>
   );
 }
