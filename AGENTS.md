@@ -53,6 +53,15 @@ WebSocket同期プロトコル（`domain/protocol.ts`）はバックエンド `s
 共有 URL の下に「タイマーのみのURL」アコーディオンを置き、ロビー URL + `?timer=true` を表示する
 （新規 URL は発行しない）。
 
+### ルーム詳細設定（`domain/roomSettings.ts`）
+
+ルーム作成 UI の「詳細設定」アコーディオンで一方通行（アクセラレーター）モード・オーナー
+退室時自動削除・リアクション禁止をトグルする（`sidebar/RoomSettings.tsx`、作成時と操作タブ
+で共用）。設定は create メッセージを変えず、create 確定後に owner 限定の `update_setting`
+アクションで適用する（旧バックエンド互換）。現在値はサーバの `room_setting` イベントで受信。
+一方通行では非オーナーの `video_operation` を送らず、リアクション禁止では送信せず自分にだけ
+ローカル表示する（`RoomSession`）。
+
 ## コマンド
 
 ```bash

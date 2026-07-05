@@ -24,6 +24,7 @@ function frame(store: SidebarStore) {
         onCreateRoom={() => store.setJoined(true)}
         onLeave={() => store.hide()}
         onDeleteRoom={() => store.resetToCreate()}
+        onUpdateRoomSettings={(settings) => store.setRoomSettings(settings)}
         onTabChange={() => {}}
       />
     </div>

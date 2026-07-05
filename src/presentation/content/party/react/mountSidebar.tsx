@@ -1,15 +1,22 @@
 import { createRoot } from "react-dom/client";
 
+import type { RoomSettings } from "@/domain/roomSettings";
 import { HEALTH_CHECK_ENDPOINT } from "@/infrastructure/env";
 import { PortalContainerContext } from "@/lib/portalContainer";
 
 import { Sidebar } from "./Sidebar";
-import { SidebarController, SidebarStore, type SidebarTab } from "./sidebarStore";
+import {
+  SidebarController,
+  SidebarStore,
+  type SidebarTab,
+} from "./sidebarStore";
 
 export interface SidebarHandlers {
   onCreateRoom: () => void;
   onLeave: () => void;
   onDeleteRoom: () => void;
+  /** 詳細設定の更新（オーナーのみ有効。update_setting を送る）。 */
+  onUpdateRoomSettings: (settings: RoomSettings) => void;
   onTabChange?: (tab: SidebarTab) => void;
 }
 
@@ -106,6 +113,7 @@ export function mountSidebar(handlers: SidebarHandlers): MountedSidebar {
         onCreateRoom={handlers.onCreateRoom}
         onLeave={handlers.onLeave}
         onDeleteRoom={handlers.onDeleteRoom}
+        onUpdateRoomSettings={handlers.onUpdateRoomSettings}
         onTabChange={handlers.onTabChange}
       />
     </PortalContainerContext.Provider>,
