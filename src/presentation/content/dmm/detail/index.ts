@@ -38,7 +38,9 @@ function decorate(): void {
 
   const button = iconButton({
     icon: "groups",
-    className: "dparty-btn dparty-btn--party",
+    // dparty-btn--dmm で DMM のアクションボタン（お気に入り/シェア）に合わせた円形・
+    // 暗い半透明・白アイコンにする（一覧用の白い角丸四角スタイルを上書き）。
+    className: "dparty-btn dparty-btn--party dparty-btn--dmm",
     tooltip: "パーティールームを作成",
     onClick: openCreatePartyInNewTab,
   });

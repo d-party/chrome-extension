@@ -129,6 +129,40 @@
 /* Both buttons share the same neutral (dark) icon color; they are distinguished
    only by their glyph (play vs groups). */
 
+/* DMM TV variant — used on the title detail page, where the button sits inline
+   with DMM's native round action buttons (お気に入り / シェア) over a dark hero.
+   Override the light frosted square (used on the dアニメストア list) with a
+   circular, dark translucent button + white glyph so it matches DMM's controls.
+   Self-contained (no dependency on DMM's own design-token classes), so it does
+   not break if DMM re-themes. Sizes are tuned to DMM's ~48px action buttons. */
+.dparty-btn.dparty-btn--dmm {
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 9999px;
+    border: none;
+    background-color: rgba(255, 255, 255, 0.12);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+    color: #fff;
+}
+
+.dparty-btn.dparty-btn--dmm .material-icons {
+    font-size: 24px;
+    color: #fff;
+}
+
+.dparty-btn.dparty-btn--dmm:hover {
+    transform: none;
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: none;
+}
+
+.dparty-btn.dparty-btn--dmm:active {
+    transform: none;
+    box-shadow: none;
+}
+
 /* The extra "別タブで視聴する" button in the detail modal. It is absolutely
    positioned just OUTSIDE the right edge of 視聴する (#streamingQuality), so it
    sits beside 視聴する without overlapping it and 視聴する is never reparented or
