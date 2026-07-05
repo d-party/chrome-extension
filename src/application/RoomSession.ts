@@ -4,6 +4,7 @@ import { isDefaultReaction } from "@/domain/reactions";
 import {
   type RoomSettings,
   DEFAULT_ROOM_SETTINGS,
+  diffRoomSettings,
   fromWire,
   isDefaultRoomSettings,
 } from "@/domain/roomSettings";
@@ -72,6 +73,10 @@ export class RoomSession {
   // サーバから通知された現在のルーム詳細設定。一方通行モードの動画操作抑止や
   // リアクション禁止の判定に使う。room_setting イベントで更新される。
   private roomSettings: RoomSettings = DEFAULT_ROOM_SETTINGS;
+  // create/join 直後にサーバが配る最初の room_setting は「現在値の初期同期」であり
+  // 設定変更ではない。これを有効化/無効化の通知と区別するため、最初の 1 通を受信済みか
+  // を持つ。以降の room_setting（オーナーが操作タブで変更したとき）だけ通知する。
+  private roomSettingsInitialized = false;
   // ルーム作成時に指定された初期設定。create 確定後に update_setting で適用する。
   private pendingSettings: RoomSettings | null = null;
   // 一方通行モードで非オーナーが操作を試みたときの「操作できません」通知を、
@@ -108,6 +113,7 @@ export class RoomSession {
     this._inRoom = true;
     this.joined = false;
     this.resetDelayMs = 100;
+    this.roomSettingsInitialized = false;
     this.pendingSettings = settings ?? null;
     this.deps.sidebar.setConnectionStatus("idle");
     this.openSocket(() => {
@@ -142,6 +148,7 @@ export class RoomSession {
     this._inRoom = true;
     this.joined = false;
     this.resetDelayMs = 200;
+    this.roomSettingsInitialized = false;
     this.roomId = roomId;
     this.deps.sidebar.setConnectionStatus("idle");
     this.openSocket(() => {
@@ -540,13 +547,22 @@ export class RoomSession {
           });
         }
         break;
-      case "room_setting":
+      case "room_setting": {
         // サーバから配布される現在のルーム詳細設定を反映する。一方通行モードの
         // 動画操作抑止やリアクション禁止の判定に使う。旧バックエンドは送らないため
         // 未受信なら既定値（すべて false）のままで現行挙動になる。
+        const previousSettings = this.roomSettings;
         this.roomSettings = fromWire(message);
         sidebar.setRoomSettings(this.roomSettings);
+        // 最初の 1 通は入室時の現在値同期なので通知しない。以降のオーナーによる変更
+        // だけを通知する。変更したオーナー本人（ホスト）は操作タブのトグルで把握できる
+        // ため、通知対象は非オーナーの参加者に限る。
+        if (this.roomSettingsInitialized && !this.isHost) {
+          this.notifyRoomSettingChanges(previousSettings, this.roomSettings);
+        }
+        this.roomSettingsInitialized = true;
         break;
+      }
     }
   }
 
@@ -586,6 +602,26 @@ export class RoomSession {
       user: userName,
       userIcon,
     });
+  }
+
+  // オーナーが操作タブで詳細設定を変更した（room_setting の差分がある）とき、
+  // 変化した設定ごとに「『◯◯』を有効化しました／無効化しました」をトースト＋履歴で
+  // ルーム内の参加者へ知らせる。
+  private notifyRoomSettingChanges(
+    previous: RoomSettings,
+    next: RoomSettings,
+  ): void {
+    for (const change of diffRoomSettings(previous, next)) {
+      const label = `『${change.label}』を${
+        change.enabled ? "有効化" : "無効化"
+      }しました`;
+      this.deps.notifier.info(label);
+      this.deps.sidebar.addHistory({
+        direction: "system",
+        icon: "info",
+        label,
+      });
+    }
   }
 
   // -- notifications ---------------------------------------------------------

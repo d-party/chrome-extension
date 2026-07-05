@@ -30,6 +30,47 @@ export function isDefaultRoomSettings(settings: RoomSettings): boolean {
   );
 }
 
+/**
+ * 各設定の表示名。オーナーが詳細設定を変更したとき、ルーム内の参加者へ出す
+ * 「『◯◯』を有効化しました」通知の `◯◯` に使う。
+ */
+export const ROOM_SETTING_LABELS: Record<keyof RoomSettings, string> = {
+  oneWay: "一方通行モード",
+  ownerLeaveDelete: "オーナー退室時の自動削除",
+  disableReaction: "リアクション禁止",
+};
+
+/** {@link diffRoomSettings} が返す、変化した 1 設定の内容。 */
+export interface RoomSettingChange {
+  key: keyof RoomSettings;
+  /** 表示名（{@link ROOM_SETTING_LABELS}）。 */
+  label: string;
+  /** 変更後の値。true なら有効化、false なら無効化。 */
+  enabled: boolean;
+}
+
+/**
+ * 2 つの設定を比較し、値が変化したフィールドだけを列挙する。`room_setting` 受信時に
+ * 「何が有効化/無効化されたか」の通知を組み立てるために使う。変化が無ければ空配列。
+ */
+export function diffRoomSettings(
+  previous: RoomSettings,
+  next: RoomSettings,
+): RoomSettingChange[] {
+  const keys: (keyof RoomSettings)[] = [
+    "oneWay",
+    "ownerLeaveDelete",
+    "disableReaction",
+  ];
+  return keys
+    .filter((key) => previous[key] !== next[key])
+    .map((key) => ({
+      key,
+      label: ROOM_SETTING_LABELS[key],
+      enabled: next[key],
+    }));
+}
+
 /** サーバ受信（snake_case）→ 内部表現。 */
 export function fromWire(wire: {
   one_way?: boolean;
