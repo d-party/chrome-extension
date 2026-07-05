@@ -1,35 +1,19 @@
 /*
- * DMM TV 再生ページ専用のレイアウト調整。
+ * DMM TV 再生ページ専用のレイアウト調整（固定コントローラの右寄せのみ）。
  *
- * d-party のサイドバーは DMM に `.videoWrapper` が無いため固定オーバーレイ
- * （position:fixed; right:0）で表示される。DMM は React SPA でプレイヤーが
- * ビューポート基準（w-full / h-dvh / position:fixed のコントローラ）なので、DOM を
- * 再配置せず CSS だけでサイドバーぶんの余白を右に確保する。
+ * サイドバー本体の配置と「プレイヤーぶんだけ右に余白を空ける」処理は content script
+ * （dmm/player/index.ts の layoutDmmSidebar）が JS で行う。プレイヤー領域を実測して
+ * position:absolute で右横に並べ、右パディングもプレイヤー要素だけに入れるため、
+ * 動画下の説明・エピソード一覧などページ下部の内容には一切影響しない（サイドバーも
+ * プレイヤーの高さぶんだけ表示され、スクロールで一緒に流れて消える）。
  *
- * 仕組み: サイドバーを開いている間、ルート要素（<html>）に右パディングを入れて
- * 通常フローのページ内容（動画下の説明・エピソード一覧など）をまるごと左へ詰める。
- * パディングはボックスモデルで body を素直に narrow するため、DMM の内部クラス名や
- * 構造に一切依存しない（= React の再レンダリングでも壊れない）。以前の `#main-layout`
- * 幅指定は「その要素が全幅コンテナである」前提に依存し、実際には中央寄せ等で被りが
- * 残ったため、ルートパディング方式へ変更した。
- *
- * 幅と開閉は content script が `--d-party-sidebar-width` と
- * `html.d-party-dmm-sidebar-open` で伝える。
+ * この CSS は JS で扱いづらい position:fixed のプレイヤーコントローラ（上部/下部バー）
+ * だけを担当する。ビューポート基準でプレイヤー要素の padding を無視するため、右端を
+ * サイドバー幅ぶん内側へ寄せて、動画コントロールがサイドバーの裏に隠れないようにする
+ * （`w-full` を left/right アンカー + width:auto で上書き）。サイドバー幅と開閉は
+ * content script が `--d-party-sidebar-width` と `html.d-party-dmm-sidebar-open` で伝える。
  */
 
-html.d-party-dmm-sidebar-open {
-  box-sizing: border-box !important;
-  padding-right: var(--d-party-sidebar-width, 0px) !important;
-  /* 100vw の子要素がパディング領域へはみ出すのを隠す（サイドバーは position:fixed
-       なのでルートの overflow では切り取られない）。 */
-  overflow-x: hidden !important;
-  transition: padding-right 0.22s ease;
-}
-
-/* position:fixed のプレイヤーコントローラ（上部/下部バー）はビューポート基準で
-   ルートのパディングを無視するため、右端をサイドバー幅ぶん内側へ寄せて、動画
-   コントロールがサイドバーの裏に隠れないようにする。`w-full` を width:auto +
-   left/right アンカーで上書きし、100vw のスクロールバー差分ズレも避ける。 */
 html.d-party-dmm-sidebar-open .z-player-top-controller,
 html.d-party-dmm-sidebar-open .z-player-bottom-controller {
   left: 0 !important;

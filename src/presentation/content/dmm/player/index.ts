@@ -132,11 +132,22 @@ const session = new RoomSession({
 sidebarStore.setMode(mode);
 if (mode === "join") sidebarStore.setJoined(true);
 
-// DMM は React SPA でプレイヤーがビューポート基準（w-full/h-dvh/fixed）なので、DOM を
-// 再配置せず CSS だけでレイアウトを調整する。サイドバーを開いている間、プレイヤー領域を
-// 左へ詰めて右にサイドバー幅ぶんの余白を作り、動画に被らないようにする（dmm-player.css）。
-const applyDmmLayout = (): void => {
+// DMM は React SPA でプレイヤーがビューポート基準（w-full / h-dvh / fixed のコントローラ）
+// なので DOM は再配置しない。サイドバーは「プレイヤー領域の右横」にだけ並べたいので:
+//   1) プレイヤー要素だけに右パディングを入れて動画を左へ詰める（html 全体ではなく
+//      プレイヤーだけを詰めるので、動画下の説明・エピソード一覧は全幅のまま影響しない）。
+//   2) サイドバー本体を position:absolute でプレイヤーの document 座標に合わせて置く
+//      （fixed だとスクロールしても付いてきて下の要素にも被るため、absolute にして
+//       プレイヤーの高さぶんだけ表示し、スクロールで一緒に流れて消えるようにする）。
+// 固定コントローラ（上部/下部バー）の右寄せだけは CSS（dmm-player.css）が担当する。
+const getPlayerContainer = (): HTMLElement | null =>
+  document.getElementById("vodWrapper") ??
+  findDmmVideo()?.parentElement ??
+  null;
+
+const layoutDmmSidebar = (): void => {
   const width = sidebarWidth(sidebarStore.getSnapshot());
+  // CSS var + 開閉クラスは固定コントローラの右寄せ（dmm-player.css）に使う。
   document.documentElement.style.setProperty(
     "--d-party-sidebar-width",
     `${width}px`,
@@ -145,15 +156,37 @@ const applyDmmLayout = (): void => {
     "d-party-dmm-sidebar-open",
     width > 0,
   );
+
+  const host = document.getElementById("d-party-sidebar-host");
+  const player = getPlayerContainer();
+  if (!host || !player) return;
+
+  // 1) プレイヤーだけ右に余白（border-box なので外形サイズ＝高さ/位置は不変）。
+  player.style.boxSizing = "border-box";
+  player.style.paddingRight = width > 0 ? `${width}px` : "";
+
+  // 2) サイドバーをプレイヤーの document 座標へ absolute で配置（スクロール追従しない）。
+  const rect = player.getBoundingClientRect();
+  host.style.position = "absolute";
+  host.style.top = `${rect.top + window.scrollY}px`;
+  host.style.right = "0px";
+  host.style.bottom = "auto";
+  host.style.height = `${rect.height || window.innerHeight}px`;
 };
-applyDmmLayout();
-sidebarStore.subscribe(applyDmmLayout);
+layoutDmmSidebar();
+sidebarStore.subscribe(layoutDmmSidebar);
+window.addEventListener("resize", layoutDmmSidebar);
 
 let playerEventsBound = false;
 
 // DMM は SPA なので video 要素は後から描画される。要素が現れてから join を発火する。
 whenVideoReady((video) => {
   sidebarStore.setShareTitle(shareTitle());
+  // プレイヤーが現れ／サイズが確定したのでサイドバー配置を再計算し、以後の
+  // プレイヤーサイズ変化（DMM は初期化後にリサイズすることがある）にも追従する。
+  layoutDmmSidebar();
+  const playerEl = getPlayerContainer();
+  if (playerEl) new ResizeObserver(layoutDmmSidebar).observe(playerEl);
   if (mode === "join") {
     addControlButtons();
     bindPlayerEvents();
