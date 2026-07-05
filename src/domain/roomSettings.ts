@@ -6,9 +6,12 @@
  * すべて既定値（false）として扱うため、これらは後方互換の既定として使う。
  */
 export interface RoomSettings {
-  /** 一方通行（アクセラレーター）モード。オーナーのみが動画操作でき、退室で自動削除。 */
+  /**
+   * 一方通行（アクセラレーター）モード。オーナーのみが動画を操作できる。
+   * ルームの自動削除とは独立（`ownerLeaveDelete` を含意しない）。
+   */
   oneWay: boolean;
-  /** オーナー退室時にルームを自動削除する。 */
+  /** オーナー退室時にルームを自動削除する。`oneWay` とは独立して設定できる。 */
   ownerLeaveDelete: boolean;
   /** リアクションを禁止する（送信も記録もしない。自分の画面にだけ表示）。 */
   disableReaction: boolean;
@@ -19,11 +22,6 @@ export const DEFAULT_ROOM_SETTINGS: RoomSettings = {
   ownerLeaveDelete: false,
   disableReaction: false,
 };
-
-/** 一方通行モードはオーナー退室時自動削除を含意する（UI/挙動の実効値）。 */
-export function effectiveOwnerLeaveDelete(settings: RoomSettings): boolean {
-  return settings.ownerLeaveDelete || settings.oneWay;
-}
 
 /** 既定値（すべて false）と等しいか。create 時に不要な update 送信を避けるのに使う。 */
 export function isDefaultRoomSettings(settings: RoomSettings): boolean {

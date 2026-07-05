@@ -2,10 +2,7 @@ import { Ban, Gauge, LogOut } from "lucide-react";
 
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import {
-  type RoomSettings as RoomSettingsValue,
-  effectiveOwnerLeaveDelete,
-} from "@/domain/roomSettings";
+import type { RoomSettings as RoomSettingsValue } from "@/domain/roomSettings";
 
 /**
  * ルーム詳細設定のトグル群（単一の再利用コンポーネント）。
@@ -23,10 +20,6 @@ export function RoomSettings({
   onChange: (next: RoomSettingsValue) => void;
   disabled?: boolean;
 }): React.JSX.Element {
-  // 一方通行モードはオーナー退室時自動削除を含意するため、ON の間は自動削除トグルを
-  // 強制 ON + 操作不可にして、挙動と表示を一致させる。
-  const ownerLeaveForced = value.oneWay;
-
   return (
     <div className="flex flex-col gap-3">
       <SettingRow
@@ -35,12 +28,12 @@ export function RoomSettings({
         title={
           <>
             <ruby>
-              一方通行<rt className="text-[9px]">アクセラレーター</rt>
+              一方通行<rt className="text-[7px]">アクセラレーター</rt>
             </ruby>
             モード
           </>
         }
-        description="オーナーだけが動画を操作できます（リアクションは可）。オーナー退室でルームは自動削除されます。"
+        description="オーナーだけが動画を操作できます（リアクションは可）。"
         checked={value.oneWay}
         disabled={disabled}
         onCheckedChange={(oneWay) => onChange({ ...value, oneWay })}
@@ -50,8 +43,8 @@ export function RoomSettings({
         icon={<LogOut className="size-4 text-red-600" aria-hidden />}
         title="オーナー退室時にルーム自動削除"
         description="オーナーが退室すると、ルームを自動的に削除します。"
-        checked={effectiveOwnerLeaveDelete(value)}
-        disabled={disabled || ownerLeaveForced}
+        checked={value.ownerLeaveDelete}
+        disabled={disabled}
         onCheckedChange={(ownerLeaveDelete) =>
           onChange({ ...value, ownerLeaveDelete })
         }
