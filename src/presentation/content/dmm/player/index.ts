@@ -175,10 +175,14 @@ const layoutDmmSidebar = (): void => {
   }
 
   // 2) サイドバーをプレイヤーの document 座標へ absolute で配置（スクロール追従しない）。
+  //    右端は `right:0`（= 包含ブロックの右端）だとスクロールバーや body の箱ぶん内側に
+  //    寄って「サイドバーの右に空白」ができるため、詰めたあとのプレイヤーの右端（rect.right）
+  //    に left を合わせる。空き幅もサイドバー幅も同じ値から導くので、隙間なく収まる。
   const rect = player.getBoundingClientRect();
   host.style.position = "absolute";
   host.style.top = `${rect.top + window.scrollY}px`;
-  host.style.right = "0px";
+  host.style.left = `${rect.right + window.scrollX}px`;
+  host.style.right = "auto";
   host.style.bottom = "auto";
   host.style.height = `${rect.height || window.innerHeight}px`;
 };
