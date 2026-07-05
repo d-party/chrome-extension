@@ -20,3 +20,63 @@ html.d-party-dmm-sidebar-open .z-player-bottom-controller {
   right: var(--d-party-sidebar-width, 0px) !important;
   width: auto !important;
 }
+
+/*
+ * 注入した sync + リアクションボタン（#d-party-player-controls）の見た目。
+ * DMM の再生ページには player.css（.controll_button 等）を入れていないので、
+ * コントロールのスタイルを DMM 専用のここで与える（player.css のグローバル
+ * ::-webkit-scrollbar / .sidebar 等を DMM へ持ち込まないため、必要な分だけ移植）。
+ * また display:contents のままだと DMM の block 親で縦積みになるため、ホストを
+ * 横並びの flex コンテナにする（inline の display:contents を !important で上書き）。
+ */
+#d-party-player-controls {
+  display: flex !important;
+  flex-flow: row nowrap;
+  align-items: center;
+}
+
+#d-party-player-controls .controll_button {
+  position: relative;
+  width: 44px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#d-party-player-controls .buttonArea_icon {
+  color: #b2bac2;
+  font-size: 21px;
+}
+
+#d-party-player-controls .controll_button:hover .buttonArea_icon {
+  color: rgb(239, 239, 239);
+  cursor: pointer;
+}
+#d-party-player-controls .fav_button:hover .buttonArea_icon {
+  color: rgb(255, 34, 71);
+}
+#d-party-player-controls .middle_finger_button:hover .buttonArea_icon {
+  color: #f7c33c;
+}
+#d-party-player-controls .smile_button:hover .buttonArea_icon {
+  color: #f7c33c;
+}
+#d-party-player-controls .cry_button:hover .buttonArea_icon {
+  color: #3c6ef7;
+}
+#d-party-player-controls .thumbs_button:hover .buttonArea_icon {
+  color: #6380ad;
+}
+
+#d-party-player-controls .sync_button:hover {
+  animation: dparty-dmm-sync-spin 1.5s linear infinite;
+}
+@keyframes dparty-dmm-sync-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}

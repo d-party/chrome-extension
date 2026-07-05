@@ -160,7 +160,22 @@ let sidebarNormalized = false;
 const normalizeSidebarScale = (host: HTMLElement): void => {
   if (sidebarNormalized || !host.shadowRoot) return;
   sidebarNormalized = true;
+  // spacing 系（幅/余白/アイコン size-* 等）を 16px 相当の px へ固定。
   host.style.setProperty("--spacing", "4px");
+  // フォントサイズ（text-*）は Tailwind v4 で `var(--text-*)`（= rem）を使うため、
+  // spacing とは別に px（16px 相当）へ固定する。これをしないと DMM の小さいルート
+  // font-size で文字だけ小さいままになる（幅は直っても中身が縮んで見える）。
+  const textVars: Record<string, string> = {
+    "--text-xs": "12px",
+    "--text-sm": "14px",
+    "--text-base": "16px",
+    "--text-lg": "18px",
+    "--text-xl": "20px",
+    "--text-2xl": "24px",
+  };
+  for (const [name, value] of Object.entries(textVars)) {
+    host.style.setProperty(name, value);
+  }
   const style = document.createElement("style");
   style.textContent = `[class~="w-80"]{width:100%!important;}`;
   host.shadowRoot.appendChild(style);
@@ -288,8 +303,14 @@ function bindPlayerEvents(): void {
  */
 function addControlButtons(): void {
   const mount = (anchor: Element): void => {
+    // DMM: 再生ボタンは grid（grid-flow-col）の 1 セル（.group）に入っている。
+    // そのボタン自体の前（セル内の block）に差し込むと display:contents の子が
+    // 縦積みになるので、セル（.group）ごとの左隣に独立セルとして差し込む。
+    // こうすれば grid の横並びに乗り、CSS でホストを flex 行にすればリアクションも
+    // 他コントロールと同じ行に横並びで入る（dmm-player.css）。
+    const cell = anchor.closest("div.group") ?? anchor;
     mountPlayerControls({
-      anchor,
+      anchor: cell,
       initialSettings: currentSettings,
       subscribe: (cb) => {
         void settingsRepo.getAll().then(cb);
