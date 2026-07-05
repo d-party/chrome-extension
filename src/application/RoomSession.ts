@@ -74,6 +74,16 @@ export class RoomSession {
   private roomSettings: RoomSettings = DEFAULT_ROOM_SETTINGS;
   // ルーム作成時に指定された初期設定。create 確定後に update_setting で適用する。
   private pendingSettings: RoomSettings | null = null;
+  // 一方通行モードで非オーナーが操作を試みたときの「操作できません」通知を、
+  // seek/ratechange 等の多発イベントで連射しないようスロットルするための時刻。
+  private lastOneWayNoticeAt = 0;
+  static ONE_WAY_NOTICE_THROTTLE_MS = 3000;
+  // 受信した動画操作/シンクをプレイヤーへ適用した時刻。適用は複数の DOM メディア
+  // イベント（seek→playing 等）を誘発し、最初のイベントで guard が再開すると後続が
+  // 送信経路へ漏れる。この時刻から直後の「エコー」を見分け、一方通行の非オーナーでも
+  // オーナー操作の受信を自分の操作と誤認して通知しないようにする。
+  private lastRemoteApplyAt = 0;
+  static REMOTE_APPLY_ECHO_MS = 500;
 
   userId = "";
   roomId = "";
@@ -218,10 +228,43 @@ export class RoomSession {
   // 仕様: ホスト/ゲストいずれも自分のプレイヤー操作（再生・停止・シーク等）を
   // ルームへブロードキャストできる（相互にコントロール可）。フィードバックループは
   // ActionGuard（suppress/allow）で抑止する。
+  /** 一方通行(アクセラレーター)モードで、非オーナーは動画を操作できない。 */
+  private get operationBlocked(): boolean {
+    return this.roomSettings.oneWay && !this.isHost;
+  }
+
+  /**
+   * 一方通行モードで非オーナーが操作を試みたとき、送信者にだけ「操作できません」を
+   * 表示する。オーナーや他の参加者には何も送らない（operation_notification を出さない）。
+   * seek/ratechange 等でイベントが多発するためスロットルする。
+   */
+  private noticeOneWayBlocked(): void {
+    const t = now();
+    if (t - this.lastOneWayNoticeAt < RoomSession.ONE_WAY_NOTICE_THROTTLE_MS)
+      return;
+    this.lastOneWayNoticeAt = t;
+    this.deps.notifier.alert("一方通行モードでは操作できません");
+  }
+
   sendVideoOperation(operation: string): void {
-    // 一方通行(アクセラレーター)モードでは、オーナー以外は動画操作を送らない
-    // （サーバ側でもブロックされるが、無駄な送信とローカルの取り消しループを避ける）。
-    if (this.roomSettings.oneWay && !this.isHost) return;
+    // 一方通行(アクセラレーター)モードでは、オーナー以外は動画を操作できない。
+    // サーバへ送らない（サーバ側でも非オーナーの操作はブロックされる）だけだと、
+    // ローカルのプレイヤーは操作されたままルームからズレてしまう。そこでホストへ
+    // sync_request を投げて現在の再生状態を取り戻し、操作を取り消す。sync_response の
+    // 適用は guard.suppress() 下で行われるため送信ループにはならない（join 時の
+    // 自動シンクと同じ経路）。送信者にだけ「操作できません」を表示する。
+    if (this.operationBlocked) {
+      // ただし、直前に受信した動画操作/シンクを適用した「エコー」イベント
+      // （複数 DOM イベントの後続が guard 再開後に漏れたもの）は、オーナー操作の
+      // 受信であって自分の操作ではない。プレイヤーは既にホスト状態なので、通知も
+      // 巻き戻しもせず黙って無視する。
+      if (now() - this.lastRemoteApplyAt < RoomSession.REMOTE_APPLY_ECHO_MS) {
+        return;
+      }
+      this.noticeOneWayBlocked();
+      this.requestSync({ manual: false });
+      return;
+    }
     this.send({
       action: "video_operation",
       user_id: this.userId,
@@ -252,6 +295,12 @@ export class RoomSession {
   }
 
   sendActionNotification(operation: string): void {
+    // 一方通行モードで非オーナーは操作できないため、他の参加者へ操作通知を配信しない。
+    // 送信者にだけ「操作できません」を表示する。
+    if (this.operationBlocked) {
+      this.noticeOneWayBlocked();
+      return;
+    }
     this.send({
       action: "operation_notification",
       operation,
@@ -274,12 +323,10 @@ export class RoomSession {
   }
 
   sendReaction(reactionId: string): void {
-    // リアクション禁止設定では、サーバへ送らず（＝他者へ配信されず記録もされない）、
-    // 自分の画面にだけローカルで表示する（仕様:「自分にだけは表示される」）。
+    // リアクション禁止設定では、サーバへ送らない（＝他者へ配信されず記録もされない）。
+    // 自分の画面への表示は呼び出し側（onReaction）が全モード共通でローカル再生して
+    // いるため、ここで再生すると二重表示になる。送信を止めるだけにする。
     if (this.roomSettings.disableReaction) {
-      this.deps.reactions.play(reactionId, {
-        mode: this.deps.settings.current().reactionDisplay,
-      });
       return;
     }
     this.send({
@@ -356,6 +403,7 @@ export class RoomSession {
     switch (message.action) {
       case "video_operation":
         this.deps.guard.suppress();
+        this.lastRemoteApplyAt = now();
         player.onAction(message.operation, message.option);
         break;
       case "create":
@@ -457,6 +505,7 @@ export class RoomSession {
         break;
       case "sync_response":
         this.deps.guard.suppress();
+        this.lastRemoteApplyAt = now();
         player.onAction("sync", message.option);
         // 手動 sync リクエストに対する返信のときだけトーストを出す。
         // join 直後の自動シンクをも黙って適用したいため。
@@ -542,6 +591,8 @@ export class RoomSession {
    * {@link sendActionNotification} に渡したものと同じワイヤ表現。
    */
   notifySentOperation(operation: string): void {
+    // 一方通行モードで非オーナーは操作できないため、送信履歴も残さない。
+    if (this.operationBlocked) return;
     const meta = describeOperation(operation);
     if (!meta) return;
     this.deps.notifier.success(meta.label);
