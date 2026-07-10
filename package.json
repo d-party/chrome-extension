@@ -1,6 +1,6 @@
 {
   "name": "d-party-chrome-extension",
-  "version": "2.11.2",
+  "version": "2.11.3",
   "description": "dアニメストアで『同時視聴』を実現する d-party の Chrome 拡張機能 (Manifest V3 / TypeScript)",
   "private": true,
   "type": "module",
