@@ -62,10 +62,5 @@
     "typescript-eslint": "^8.61.1",
     "vite": "^8.0.16"
   },
-  "packageManager": "pnpm@10.28.1",
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild"
-    ]
-  }
+  "packageManager": "pnpm@10.28.1"
 }

@@ -12,21 +12,21 @@
    sections on the page are unaffected. position:relative alone does not change
    the native layout of the card's children. */
 .itemModule.list section.clearfix {
-    position: relative;
+  position: relative;
 }
 
 .dparty-overlay {
-    position: absolute;
-    /* Bottom-aligned so the buttons sit below the episode title instead of
+  position: absolute;
+  /* Bottom-aligned so the buttons sit below the episode title instead of
        colliding with it (vertical-center used to overlap longer titles). */
-    bottom: 8px;
-    right: 12px;
-    display: flex;
-    align-items: flex-end;
-    gap: 8px;
-    z-index: 10;
-    /* Let clicks in the gaps fall through to the underlying card link. */
-    pointer-events: none;
+  bottom: 8px;
+  right: 12px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  z-index: 10;
+  /* Let clicks in the gaps fall through to the underlying card link. */
+  pointer-events: none;
 }
 
 /* While a button is hovered, lift this overlay's whole stacking context to the
@@ -35,66 +35,66 @@
    :hover matches here even though the overlay is pointer-events:none, because the
    hovered button is its descendant. */
 .dparty-overlay:hover {
-    z-index: 214748364;
+  z-index: 214748364;
 }
 
 /* shadcn-like frosted-glass icon button. Both buttons share the same quiet
    neutral surface; the party button is distinguished only by a brand-colored
    icon (a loud red fill was too prominent over the thumbnails). */
 .dparty-btn {
-    --dp-brand: oklch(0.637 0.237 25.331);
-    --dp-foreground: oklch(0.32 0 0);
-    --dp-ring: oklch(0.637 0.237 25.331);
+  --dp-brand: oklch(0.637 0.237 25.331);
+  --dp-foreground: oklch(0.32 0 0);
+  --dp-ring: oklch(0.637 0.237 25.331);
 
-    pointer-events: auto;
-    box-sizing: border-box;
-    /* Reset native <button> chrome (we render a custom surface below). */
-    appearance: none;
-    -webkit-appearance: none;
-    font: inherit;
-    /* Anchor for the tooltip pseudo-elements (otherwise they position against
+  pointer-events: auto;
+  box-sizing: border-box;
+  /* Reset native <button> chrome (we render a custom surface below). */
+  appearance: none;
+  -webkit-appearance: none;
+  font: inherit;
+  /* Anchor for the tooltip pseudo-elements (otherwise they position against
        the overlay and end up mislocated). */
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    /* Fixed square. !important + flex:none defeats dアニメストア's own anchor
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Fixed square. !important + flex:none defeats dアニメストア's own anchor
        height rules and flexbox stretch, which otherwise stretch us vertically. */
-    flex: 0 0 auto;
-    width: 34px !important;
-    height: 34px !important;
-    min-height: 0;
-    padding: 0;
-    margin: 0;
-    border: 1px solid rgba(0, 0, 0, 0.06);
-    border-radius: 10px;
-    color: var(--dp-foreground);
-    background-color: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(8px) saturate(1.4);
-    -webkit-backdrop-filter: blur(8px) saturate(1.4);
-    cursor: pointer;
-    text-decoration: none !important;
-    user-select: none;
-    box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.08),
-        0 4px 12px rgba(0, 0, 0, 0.1);
-    transition:
-        transform 0.15s ease,
-        box-shadow 0.15s ease,
-        background-color 0.15s ease,
-        color 0.15s ease;
+  flex: 0 0 auto;
+  width: 34px !important;
+  height: 34px !important;
+  min-height: 0;
+  padding: 0;
+  margin: 0;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  color: var(--dp-foreground);
+  background-color: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(8px) saturate(1.4);
+  -webkit-backdrop-filter: blur(8px) saturate(1.4);
+  cursor: pointer;
+  text-decoration: none !important;
+  user-select: none;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.1);
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
 /* Fill the button so the icon glyph is truly centered — material-icons' own
    font metrics otherwise push the glyph toward the top. */
 .dparty-btn .material-icons {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-    font-size: 20px;
-    line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 20px;
+  line-height: 1;
 }
 
 /* Explicit hover/focus/active states. The `:hover`/`:focus` selectors raise
@@ -103,31 +103,72 @@
 .dparty-btn:hover,
 .dparty-btn:focus,
 .dparty-btn:active {
-    text-decoration: none !important;
+  text-decoration: none !important;
 }
 
 .dparty-btn:hover {
-    transform: translateY(-1px);
-    background-color: rgba(255, 255, 255, 0.95);
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, 0.1),
-        0 8px 18px rgba(0, 0, 0, 0.14);
+  transform: translateY(-1px);
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 8px 18px rgba(0, 0, 0, 0.14);
 }
 
 .dparty-btn:active {
-    transform: translateY(0);
-    box-shadow:
-        0 1px 2px rgba(0, 0, 0, 0.08),
-        0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(0);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .dparty-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 2px var(--dp-ring);
+  outline: none;
+  box-shadow: 0 0 0 2px var(--dp-ring);
 }
 
 /* Both buttons share the same neutral (dark) icon color; they are distinguished
    only by their glyph (play vs groups). */
+
+/* DMM TV variant — used on the title detail page, where the button sits inline
+   with DMM's native round action buttons (お気に入り / シェア) over a dark hero.
+   Override the light frosted square (used on the dアニメストア list) with a
+   circular, dark translucent button + white glyph so it matches DMM's controls.
+   Self-contained (no dependency on DMM's own design-token classes), so it does
+   not break if DMM re-themes. Sizes are tuned to DMM's ~48px action buttons. */
+.dparty-btn.dparty-btn--dmm {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 9999px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.12);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+  color: #fff;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* アイコン色はボタンの color を継承するので、ホバーで背景と一緒に反転する。 */
+.dparty-btn.dparty-btn--dmm .material-icons {
+  font-size: 24px;
+  color: inherit;
+}
+
+/* マウスオーバーで白黒反転（暗い半透明の円+白アイコン → 白い円+黒アイコン）。
+   DMM ネイティブのアクションボタンのホバー挙動に合わせる。 */
+.dparty-btn.dparty-btn--dmm:hover {
+  transform: none;
+  box-shadow: none;
+  background-color: #fff;
+  color: #1a1a1a;
+}
+
+.dparty-btn.dparty-btn--dmm:active {
+  transform: none;
+  box-shadow: none;
+}
 
 /* The extra "別タブで視聴する" button in the detail modal. It is absolutely
    positioned just OUTSIDE the right edge of 視聴する (#streamingQuality), so it
@@ -135,16 +176,16 @@
    resized (it shares no width with the button, unlike a flex sibling, and an
    inline-flex wrapper had collapsed it to its text width). */
 #streamingQuality {
-    position: relative;
+  position: relative;
 }
 
 .dparty-modal-open {
-    position: absolute;
-    top: 50%;
-    left: 100%;
-    transform: translateY(-50%);
-    margin-left: 10px;
-    z-index: 5;
+  position: absolute;
+  top: 50%;
+  left: 100%;
+  transform: translateY(-50%);
+  margin-left: 10px;
+  z-index: 5;
 }
 
 /* Keep the -50% vertical centering on hover/active. The shared .dparty-btn
@@ -153,11 +194,11 @@
    "press" of ~8px — about half of that unintended drop. */
 .dparty-modal-open:hover,
 .dparty-modal-open:active {
-    transform: translateY(calc(-50% + 8px));
+  transform: translateY(calc(-50% + 8px));
 }
 
 .dparty-hidden {
-    display: none !important;
+  display: none !important;
 }
 
 /* Tooltip. Rendered at document.body level (see showTooltip in the content
@@ -166,41 +207,41 @@
    always paints on top. The JS sets left/top to the button's viewport rect; the
    transform shifts the bubble to sit centered just above the button. */
 .dparty-tooltip {
-    position: fixed;
-    transform: translate(-50%, calc(-100% - 8px));
-    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
-    font-size: 12px;
-    line-height: 1.4;
-    font-weight: normal;
-    white-space: nowrap;
-    color: #fff;
-    background: rgba(0, 0, 0, 0.85);
-    padding: 4px 8px;
-    border-radius: 4px;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transition: opacity 0.15s ease;
-    z-index: 2147483647;
+  position: fixed;
+  transform: translate(-50%, calc(-100% - 8px));
+  font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", Meiryo, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: normal;
+  white-space: nowrap;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.85);
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+  z-index: 2147483647;
 }
 
 /* 吹き出しの矢印 */
 .dparty-tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border: 5px solid transparent;
-    border-top-color: rgba(0, 0, 0, 0.85);
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(0, 0, 0, 0.85);
 }
 
 .dparty-tooltip--visible {
-    opacity: 1;
-    visibility: visible;
+  opacity: 1;
+  visibility: visible;
 }
 
 .watched_episode {
-    background-color: #f8f8f8;
+  background-color: #f8f8f8;
 }

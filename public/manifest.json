@@ -21,6 +21,7 @@
   "host_permissions": [
     "https://animestore.docomo.ne.jp/*",
     "https://anime.dmkt-sp.jp/*",
+    "https://tv.dmm.com/*",
     "https://d-party.net/*",
     "http://localhost/*"
   ],
@@ -57,13 +58,41 @@
     {
       "matches": [
         "https://d-party.net/anime-store/lobby/*",
-        "http://localhost/anime-store/lobby/*"
+        "http://localhost/anime-store/lobby/*",
+        "https://d-party.net/dmm-tv/lobby/*",
+        "http://localhost/dmm-tv/lobby/*"
       ],
       "js": [
         "js/content-version.js"
       ],
       "css": [
         "css/style.css"
+      ]
+    },
+    {
+      "matches": [
+        "https://tv.dmm.com/*"
+      ],
+      "exclude_matches": [
+        "https://tv.dmm.com/vod/playback/on-demand/*"
+      ],
+      "js": [
+        "js/content-dmm-detail.js"
+      ],
+      "css": [
+        "css/style.css"
+      ]
+    },
+    {
+      "matches": [
+        "https://tv.dmm.com/vod/playback/on-demand/*"
+      ],
+      "js": [
+        "js/content-dmm-player.js"
+      ],
+      "css": [
+        "css/style.css",
+        "css/dmm-player.css"
       ]
     }
   ],
@@ -76,6 +105,15 @@
       "matches": [
         "https://animestore.docomo.ne.jp/*",
         "https://anime.dmkt-sp.jp/*"
+      ]
+    },
+    {
+      "resources": [
+        "assets/*",
+        "js/sidebar-style.css"
+      ],
+      "matches": [
+        "https://tv.dmm.com/*"
       ]
     }
   ]
