@@ -1,0 +1,39 @@
+version: 2
+updates:
+  # 依存は pnpm（package.json + pnpm-lock.yaml）で管理している。
+  # pnpm のロックファイルは npm エコシステムが扱う。
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      timezone: "Asia/Tokyo"
+      time: "12:00"
+    target-branch: main
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+    groups:
+      # 定期のバージョン更新だけまとめる。セキュリティ更新は
+      # 個別 PR のまま（applies-to: version-updates）にして、
+      # 1 件ずつ影響を確認できるようにする。
+      npm-minor-patch:
+        applies-to: version-updates
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      timezone: "Asia/Tokyo"
+      time: "12:00"
+    target-branch: main
+    commit-message:
+      prefix: "ci(deps)"
+    groups:
+      github-actions:
+        applies-to: version-updates
+        patterns:
+          - "*"
