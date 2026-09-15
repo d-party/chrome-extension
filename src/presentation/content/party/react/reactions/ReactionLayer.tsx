@@ -1,4 +1,4 @@
-import Lottie from "lottie-react";
+import { Lottie } from "lottie-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { ReactionIcon } from "@/components/reactionIcons";
@@ -213,7 +213,7 @@ function NormalItem({ entry, onDone }: { entry: Entry; onDone: () => void }) {
         pointerEvents: "none",
       }}
     >
-      <Lottie animationData={ANIMATIONS[entry.id]} loop={false} autoplay />
+      <Lottie src={ANIMATIONS[entry.id]} loop={false} autoplay />
     </div>
   );
 }
@@ -278,7 +278,7 @@ function LeftItem({ entry, onDone }: { entry: Entry; onDone: () => void }) {
         pointerEvents: "none",
       }}
     >
-      <Lottie animationData={ANIMATIONS[entry.id]} loop autoplay />
+      <Lottie src={ANIMATIONS[entry.id]} loop autoplay />
     </div>
   );
 }
